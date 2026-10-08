@@ -1,0 +1,10 @@
+screenshots/
+docs/
+tmp/
+.wrangler/
+node_modules/
+*.log
+*.md
+wrangler.jsonc
+.gitignore
+.assetsignore

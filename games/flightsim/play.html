@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flight Simulator (Offline)</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: -apple-system, 'Segoe UI', Arial, sans-serif; touch-action: none; }
+  canvas { display: block; }
+
+  #hud {
+    position: fixed;
+    top: 14px; left: 14px;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    font-size: 14px;
+    line-height: 1.6;
+    pointer-events: none;
+    background: rgba(0,0,0,0.3);
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: none;
+  }
+  #hud .big { font-size: 20px; font-weight: 600; }
+  #bar-container {
+    width: 130px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden;
+    margin-top: 5px; pointer-events: auto; cursor: pointer; position: relative;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  #throttleBar { height: 100%; background: linear-gradient(180deg, #ffdd66, #ffb733); width: 0%; pointer-events: none; }
+  #bar-container.dragging { border-color: #ffcc33; }
+
+  #instructions {
+    position: fixed;
+    bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.35);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 1s ease;
+    display: none;
+  }
+
+  #crosshair {
+    position: fixed; top: 50%; left: 50%;
+    width: 18px; height: 18px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    display: none;
+  }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.55); }
+  #crosshair::before { top: 8px; left: 0; width: 18px; height: 2px; }
+  #crosshair::after { top: 0; left: 8px; width: 2px; height: 18px; }
+
+  #startScreen {
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, #16233c 0%, #33578f 55%, #7ba7cf 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; text-align: center; z-index: 10; padding: 20px; box-sizing: border-box;
+  }
+  #startScreen h1 { font-size: 38px; margin-bottom: 6px; }
+  #startScreen p { font-size: 14px; opacity: 0.9; max-width: 420px; margin: 5px 0; }
+  #startBtn {
+    margin-top: 22px; padding: 14px 34px; font-size: 18px;
+    background: #ffcc33; border: none; border-radius: 30px; cursor: pointer;
+    font-weight: 700; color: #23324a; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  /* Mobile touch controls */
+  #touchControls { position: fixed; inset: 0; pointer-events: none; display: none; }
+  .stick { position: fixed; bottom: 26px; width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.3); pointer-events: auto; }
+  #leftStick { left: 26px; }
+  #rightStick { right: 26px; }
+  .knob { position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.55);
+    top: 35px; left: 35px; pointer-events: none; }
+
+  #camBtn {
+    position: fixed; top: 14px; right: 14px;
+    background: rgba(0,0,0,0.35); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; display: none;
+  }
+  #pauseBtn {
+    position: fixed; top: 14px; right: 138px;
+    background: rgba(0,0,0,0.35); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px; padding: 8px 14px; font-size: 16px; display: none; line-height: 1;
+  }
+  #gearBtn {
+    position: fixed; top: 58px; right: 14px;
+    background: rgba(0,0,0,0.35); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; display: none;
+  }
+  #advBtn {
+    position: fixed; top: 102px; right: 14px;
+    background: rgba(0,0,0,0.35); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; display: none;
+  }
+
+  #advancedOverlay {
+    position: fixed; inset: 0; display: none; pointer-events: none; z-index: 15;
+  }
+  #advancedPanel {
+    position: absolute; top: 100px; right: 14px; width: min(280px, 80vw);
+    background: #1c2b44; color: #fff; border-radius: 14px; padding: 20px 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5); pointer-events: auto;
+    max-height: 70vh; overflow-y: auto;
+  }
+  .advHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .advHeader h2 { margin: 0; font-size: 17px; }
+  #advCloseBtn {
+    background: none; border: none; color: #fff; font-size: 22px; line-height: 1; padding: 0 4px;
+    opacity: 0.7;
+  }
+  #advancedPanel label { display: block; font-size: 13px; margin-top: 16px; margin-bottom: 4px; opacity: 0.9; }
+  #advancedPanel input[type=range] { width: 100%; }
+  #radioStationBtns { display: flex; flex-wrap: wrap; gap: 8px; }
+  #radioStationBtns .choiceBtn { flex: 1 1 40%; margin-bottom: 0; }
+
+  #settingsOverlay {
+    position: fixed; inset: 0; background: rgba(10,15,25,0.72);
+    display: none; align-items: center; justify-content: center; z-index: 20;
+  }
+  #settingsPanel {
+    background: #1c2b44; color: #fff; border-radius: 14px; padding: 26px 30px;
+    width: min(360px, 88vw); box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    max-height: 86vh; overflow-y: auto;
+  }
+  #settingsPanel h2 { margin: 0 0 16px 0; font-size: 20px; text-align: center; }
+  #settingsPanel label { display: block; font-size: 13px; margin-top: 16px; margin-bottom: 4px; opacity: 0.9; }
+  #settingsPanel input[type=range] { width: 100%; }
+  #settingsPanel .hint { font-size: 11px; opacity: 0.55; margin-top: 2px; }
+  #settingsPanel .rowBtns { display: flex; gap: 8px; }
+  .choiceBtn {
+    flex: 1; padding: 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08); color: #fff; font-size: 13px;
+  }
+  .choiceBtn.active { background: #ffcc33; color: #23324a; border-color: #ffcc33; font-weight: 700; }
+  #resumeBtn {
+    width: 100%; margin-top: 22px; padding: 13px; font-size: 16px; font-weight: 700;
+    background: #ffcc33; color: #23324a; border: none; border-radius: 10px;
+  }
+  #resetFromMenuBtn {
+    width: 100%; margin-top: 10px; padding: 11px; font-size: 13px;
+    background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px;
+  }
+
+  .tabRow { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabBtn {
+    flex: 1; padding: 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;
+  }
+  .tabBtn.active { background: #ffcc33; color: #23324a; border-color: #ffcc33; }
+
+  #bindRowsContainer { max-height: 46vh; overflow-y: auto; margin: 12px 0; }
+  .bindRow {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .bindRow:last-child { border-bottom: none; }
+  .bindLabel { font-size: 13px; color: #fff; opacity: 0.9; }
+  .bindKeyBtn {
+    min-width: 74px; padding: 7px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08); color: #fff; font-size: 12px; font-family: monospace; font-weight: 700;
+  }
+  .bindKeyBtn.listening { background: #ffcc33; color: #23324a; border-color: #ffcc33; animation: bindPulse 1s infinite; }
+  @keyframes bindPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .secondaryBtn {
+    width: 100%; margin-top: 4px; padding: 10px; font-size: 13px;
+    background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px;
+  }
+  #crashOverlay {
+    position: fixed; inset: 0; background: rgba(30,8,8,0.72);
+    display: none; align-items: center; justify-content: center; z-index: 25;
+  }
+  #crashPanel {
+    background: #3a1414; color: #fff; border-radius: 14px; padding: 28px 32px;
+    width: min(340px, 88vw); box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    text-align: center; border: 1px solid rgba(255,120,90,0.35);
+  }
+  #crashPanel h2 { margin: 0 0 10px 0; font-size: 26px; }
+  #crashPanel p { margin: 6px 0; font-size: 14px; opacity: 0.9; }
+  #restartCrashBtn {
+    width: 100%; margin-top: 18px; padding: 13px; font-size: 16px; font-weight: 700;
+    background: #ff5c3d; color: #fff; border: none; border-radius: 10px;
+  }
+
+  #devMenuRow {
+    margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 14px;
+  }
+  #devMenuRow > label { margin-top: 0; }
+  .devInputRow { display: flex; gap: 6px; }
+  #cheatInput {
+    flex: 1; padding: 9px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; font-family: monospace;
+  }
+  #cheatInput::placeholder { color: rgba(255,255,255,0.4); }
+  #cheatRunBtn {
+    padding: 9px 16px; border-radius: 6px; border: none;
+    background: #ffcc33; color: #23324a; font-weight: 700; font-size: 13px;
+  }
+  #cheatLog {
+    margin-top: 8px; min-height: 32px; font-size: 11.5px; font-family: monospace;
+    color: #9fe870; white-space: pre-wrap; line-height: 1.5; opacity: 0.9;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1>&#9992;&#65039; Flight Simulator</h1>
+  <p>100% offline — no internet needed, pure HTML/JS/Canvas.</p>
+  <p><b>W/S</b> pitch &middot; <b>A/D</b> roll &middot; <b>Q/E</b> yaw &middot; <b>Shift/Z</b> throttle &middot; <b>G</b> landing gear &middot; <b>Tab</b> cycle camera &middot; <b>Right Shift</b> pause &middot; <b>R</b> reset<br><b>X</b> (or D-pad Right) opens Advanced Controls — tune the in-flight radio without pausing.<br>All keys are rebindable in Settings &rarr; Controls. Drag the throttle bar directly, too.<br>Lower your gear before touching down — belly landings always crash.<br>Orbit camera: drag to look around, scroll/pinch to zoom.<br>On touch devices, use the on-screen sticks and buttons.</p>
+  <button id="startBtn">Start Flying</button>
+</div>
+
+<div id="hud">
+  <div class="big"><span id="speed">0</span> km/h</div>
+  <div>Altitude: <span id="altitude">0</span> m</div>
+  <div>Heading: <span id="heading">0</span>&deg;</div>
+  <div>FPS: <span id="fps">0</span></div>
+  <div id="gearStatus">Gear: DOWN</div>
+  <div>Throttle</div>
+  <div id="bar-container"><div id="throttleBar"></div></div>
+</div>
+
+<div id="crosshair"></div>
+<div id="instructions">W/S pitch &middot; A/D roll &middot; Q/E yaw &middot; Shift/Z throttle &middot; Tab camera &middot; R reset &middot; X radio &amp; advanced &middot; rebind in Settings &middot; Controls</div>
+<button id="camBtn">View: 1st person</button>
+<button id="pauseBtn">&#9208;</button>
+<button id="gearBtn">Gear: DOWN</button>
+<button id="advBtn">&#128225; Adv</button>
+
+<div id="advancedOverlay">
+  <div id="advancedPanel">
+    <div class="advHeader">
+      <h2>Advanced Controls</h2>
+      <button id="advCloseBtn">&times;</button>
+    </div>
+    <div class="hint" style="margin-top:0;">X (keyboard) or D-pad Right (controller) toggles this panel. Flying continues while it's open.</div>
+
+    <label>Radio Station</label>
+    <div class="rowBtns" id="radioStationBtns">
+      <button id="radioOffBtn" class="choiceBtn">Off</button>
+      <button id="radioChillBtn" class="choiceBtn">Chill</button>
+      <button id="radioJazzyBtn" class="choiceBtn">Jazzy</button>
+      <button id="radioTrapBtn" class="choiceBtn">Trap Beat</button>
+    </div>
+
+    <label>Radio Volume (<span id="radioVolVal">50</span>%)</label>
+    <input type="range" id="radioVolSlider" min="0" max="100" step="5" value="50">
+    <div class="hint">Fully synthesized in real time — no audio files, works entirely offline</div>
+  </div>
+</div>
+
+<div id="settingsOverlay">
+  <div id="settingsPanel">
+    <h2>Paused</h2>
+
+    <div class="tabRow">
+      <button id="tabGeneralBtn" class="tabBtn active">General</button>
+      <button id="tabControlsBtn" class="tabBtn">Controls</button>
+    </div>
+
+    <div id="generalTabContent">
+    <label>Volume (<span id="volumeVal">60</span>%)</label>
+    <input type="range" id="volumeSlider" min="0" max="100" step="5" value="60">
+    <div class="rowBtns" style="margin-top:8px;">
+      <button id="muteToggleBtn" class="choiceBtn">Mute</button>
+    </div>
+    <div class="hint">Engine, wind, gear, and crash sounds — fully synthesized, no audio files</div>
+
+    <label>Terrain detail (tile size: <span id="cellSizeVal">70</span>)</label>
+    <input type="range" id="cellSizeSlider" min="5" max="150" step="1" value="70">
+    <div class="hint">Sets near-camera detail. Smaller = smoother close-up terrain, more demanding</div>
+
+    <label>Draw distance (<span id="radiusVal">26</span> tiles)</label>
+    <input type="range" id="radiusSlider" min="10" max="800" step="5" value="26">
+    <div class="hint">Uses level-of-detail rings, so this is cheap — push it far</div>
+
+    <label>Field of view (<span id="fovVal">70</span>&deg;)</label>
+    <input type="range" id="fovSlider" min="50" max="120" step="5" value="70">
+    <div class="hint">Higher = wider view, more fisheye-like</div>
+
+    <label>Camera view</label>
+    <div class="rowBtns">
+      <button id="setFirstBtn" class="choiceBtn">1st person</button>
+      <button id="setThirdBtn" class="choiceBtn">3rd person</button>
+      <button id="setOrbitBtn" class="choiceBtn">Orbit</button>
+    </div>
+    <div class="hint">In orbit view, drag on screen to look around, scroll/pinch to zoom</div>
+
+    <div style="margin-top:16px;">
+      <label style="display:flex; align-items:center; gap:8px; margin-top:0;">
+        <input type="checkbox" id="hideHudToggle" style="width:auto;">
+        Hide HUD
+      </label>
+      <div class="hint">Hides speed/altitude/heading/FPS/gear readout, artificial horizon, and compass for clean screenshots or video</div>
+    </div>
+
+    <div id="touchToggleRow" style="display:none; margin-top:16px;">
+      <label style="display:flex; align-items:center; gap:8px; margin-top:0;">
+        <input type="checkbox" id="hideTouchToggle" style="width:auto;">
+        Hide on-screen touch controls
+      </label>
+      <div class="hint">Useful if you're using a keyboard/controller on iPad</div>
+    </div>
+
+    <div id="devMenuRow">
+      <label>Dev / Cheat Console</label>
+      <div class="devInputRow">
+        <input type="text" id="cheatInput" placeholder="type a code… try 'help'" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button id="cheatRunBtn">Run</button>
+      </div>
+      <div id="cheatLog">Type 'help' for a list of codes.</div>
+    </div>
+    </div>
+
+    <div id="controlsTabContent" style="display:none;">
+      <div class="hint" style="margin-top:0;">Tap a key to rebind it, then press any key on your keyboard. Press Esc to cancel. Touch stick controls are unaffected.</div>
+      <div id="bindRowsContainer"></div>
+      <button id="resetBindsBtn" class="secondaryBtn">Reset Controls to Default</button>
+
+      <div id="gamepadStatus" class="hint" style="margin-top:16px; opacity:1; color:#9fe870;">Controller: Not connected</div>
+      <div class="hint">Left stick: roll/pitch &middot; Right stick X: yaw &middot; Triggers: throttle &middot; A: gear &middot; Y: camera &middot; B: reset &middot; Start: pause.<br>On iPad, press any button on the controller once first — Safari/Edge won't detect it until you do.</div>
+    </div>
+
+    <button id="resumeBtn">Resume Flying</button>
+    <button id="resetFromMenuBtn">Reset Position</button>
+  </div>
+</div>
+
+<div id="crashOverlay">
+  <div id="crashPanel">
+    <h2>&#128165; Crashed!</h2>
+    <p id="crashReasonText">You hit the ground too hard.</p>
+    <p>Impact speed: <span id="crashSpeedVal">0</span> km/h</p>
+    <button id="restartCrashBtn">Restart Flight</button>
+  </div>
+</div>
+
+<div id="touchControls">
+  <div class="stick" id="leftStick"><div class="knob" id="leftKnob"></div></div>
+  <div class="stick" id="rightStick"><div class="knob" id="rightKnob"></div></div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+(function(){
+"use strict";
+
+let settings = { cellSize: 70, radiusCells: 26, fovDeg: 70, hideTouchControls: false, hideHud: false,
+  muted: false, volume: 0.6, radioStation: 'off', radioVolume: 0.5,
+  godMode: false, noClip: false, turbo: false, night: false, wireframe: false };
+
+// ---------- settings persistence (localStorage) ----------
+// Note: file:// pages in some mobile browsers restrict or reset localStorage between
+// launches. This is best-effort: it degrades silently to session-only if unavailable.
+const STORAGE_KEY_SETTINGS = 'flightsim_settings_v1';
+const PERSISTED_SETTINGS_FIELDS = ['cellSize','radiusCells','fovDeg','hideTouchControls','hideHud','muted','volume','radioStation','radioVolume'];
+(function loadPersistedSettings(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      for (const f of PERSISTED_SETTINGS_FIELDS){
+        if (parsed[f] !== undefined) settings[f] = parsed[f];
+      }
+    }
+  } catch(e){}
+})();
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, focal;
+function updateFocal(){
+  const fovRad = settings.fovDeg * Math.PI / 180;
+  focal = (H/2) / Math.tan(fovRad/2);
+}
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  updateFocal();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------- vector helpers ----------
+function v(x,y,z){ return {x:x,y:y,z:z}; }
+function add(a,b){ return v(a.x+b.x, a.y+b.y, a.z+b.z); }
+function sub(a,b){ return v(a.x-b.x, a.y-b.y, a.z-b.z); }
+function scl(a,s){ return v(a.x*s, a.y*s, a.z*s); }
+function dot(a,b){ return a.x*b.x + a.y*b.y + a.z*b.z; }
+function cross(a,b){ return v(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x); }
+function len(a){ return Math.sqrt(dot(a,a)); }
+function norm(a){ const l = len(a) || 1; return scl(a, 1/l); }
+function rotAxis(vec, axis, angle){
+  // Rodrigues' rotation formula
+  const c = Math.cos(angle), s = Math.sin(angle);
+  const term1 = scl(vec, c);
+  const term2 = scl(cross(axis, vec), s);
+  const term3 = scl(axis, dot(axis, vec) * (1 - c));
+  return add(add(term1, term2), term3);
+}
+
+// ---------- biome / climate system ----------
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+function smoothstep(e0,e1,x){ const t = clamp01((x-e0)/(e1-e0)); return t*t*(3-2*t); }
+
+// shared fractal-ish noise (multi-octave sine sum), returns roughly -1..1
+function baseNoise(x,z){
+  let n = 0;
+  n += Math.sin(x*0.0025 + 0.7) * Math.cos(z*0.0027 - 0.4) * 0.6;
+  n += Math.sin(x*0.006 + 1.3)  * Math.cos(z*0.0055 + 2.1) * 0.3;
+  n += Math.sin(x*0.014 - 2.0)  * Math.cos(z*0.013 + 0.6)  * 0.15;
+  return n;
+}
+function fineDetail(x,z){
+  return Math.sin(x*0.02 + z*0.017) * 6;
+}
+
+// large-scale macro fields driving landform (elevBias) and climate (temp/moisture)
+function getClimate(x,z){
+  const elevBias = Math.sin(x*0.00016+1.7)*Math.cos(z*0.00019-0.4)
+                  + 0.55*Math.sin(x*0.00031-0.8)*Math.cos(z*0.00027+1.1);
+  const temp = 0.5 + 0.5*(Math.sin(x*0.00021-3)*Math.cos(z*0.00024+2));
+  const moisture = 0.5 + 0.5*(Math.sin(x*0.00027+5)*Math.cos(z*0.00018-1.5));
+  return { elevBias, temp, moisture };
+}
+
+// landform control points along the elevBias axis: [t, amplitude, baseOffset]
+const LANDFORM_CPS = [
+  { t:-1.0, amp:8,   off:-95 },  // deep ocean
+  { t:-0.4, amp:14,  off:-18 },  // shallow coast
+  { t:-0.08,amp:20,  off:8   },  // valley
+  { t:0.28, amp:34,  off:26  },  // plains / rolling hills
+  { t:0.6,  amp:78,  off:65  },  // canyon / mesa country
+  { t:1.0,  amp:175, off:150 }   // mountains
+];
+function landformParams(t){
+  t = Math.max(-1, Math.min(1, t));
+  for (let i=0; i<LANDFORM_CPS.length-1; i++){
+    const a = LANDFORM_CPS[i], b = LANDFORM_CPS[i+1];
+    if (t <= b.t){
+      const f = smoothstep(a.t, b.t, t);
+      return { amp: lerp(a.amp,b.amp,f), off: lerp(a.off,b.off,f) };
+    }
+  }
+  const last = LANDFORM_CPS[LANDFORM_CPS.length-1];
+  return { amp:last.amp, off:last.off };
+}
+
+function terrainHeight(x, z){
+  const c = getClimate(x,z);
+  const lf = landformParams(c.elevBias);
+  const n = baseNoise(x,z);
+
+  // ridged carving in the canyon/mesa band for a distinct sliced-up look
+  const ridgeWeight = Math.max(0, 1 - Math.abs(c.elevBias-0.44)/0.28);
+  const ridge = (1 - Math.abs(Math.sin(x*0.0038+2) + Math.sin(z*0.0033-1)*0.6)) * 42 * ridgeWeight;
+
+  let h = lf.off + n*lf.amp + ridge + fineDetail(x,z);
+
+  const d = Math.sqrt(x*x+z*z);
+  if (d < 380) h *= d/380; // flatten near spawn
+  return h;
+}
+const SUN_DIR = norm(v(0.4, 0.6, -0.35));
+
+// climate archetypes for color/vegetation blending
+const CLIMATE_TYPES = [
+  { name:'tundra', temp:0.10, moist:0.40, color:{r:196,g:203,b:198}, treeWeight:0.05 },
+  { name:'desert', temp:0.86, moist:0.10, color:{r:212,g:180,b:122}, treeWeight:0.02 },
+  { name:'plains', temp:0.50, moist:0.32, color:{r:150,g:174,b:88},  treeWeight:0.18 },
+  { name:'forest', temp:0.46, moist:0.68, color:{r:46, g:108,b:54},  treeWeight:1.0  },
+  { name:'jungle', temp:0.86, moist:0.84, color:{r:22, g:96, b:46},  treeWeight:1.35 }
+];
+function climateWeights(temp, moisture){
+  const spread = 0.075;
+  let weights = [], sum = 0;
+  for (const c of CLIMATE_TYPES){
+    const d2 = (temp-c.temp)*(temp-c.temp) + (moisture-c.moist)*(moisture-c.moist);
+    const w = Math.exp(-d2/spread);
+    weights.push(w); sum += w;
+  }
+  return weights.map(w => w/sum);
+}
+
+// full biome color at a point (blends climate color + rockiness + water + snow)
+function biomeColorAt(x, z, h){
+  const c = getClimate(x,z);
+  const weights = climateWeights(c.temp, c.moisture);
+  let r=0,g=0,b=0;
+  for (let i=0;i<CLIMATE_TYPES.length;i++){
+    r += weights[i]*CLIMATE_TYPES[i].color.r;
+    g += weights[i]*CLIMATE_TYPES[i].color.g;
+    b += weights[i]*CLIMATE_TYPES[i].color.b;
+  }
+
+  // rockiness increases with elevBias (canyon/mountain terrain), blended over climate color
+  const rockWeight = smoothstep(0.22, 0.6, c.elevBias);
+  const canyonRock = {r:176,g:96,b:62};
+  const mountainRock = {r:118,g:110,b:108};
+  const rockMix = smoothstep(0.4, 0.8, c.elevBias);
+  const rr = lerp(canyonRock.r, mountainRock.r, rockMix);
+  const rg = lerp(canyonRock.g, mountainRock.g, rockMix);
+  const rb = lerp(canyonRock.b, mountainRock.b, rockMix);
+  r = lerp(r, rr, rockWeight);
+  g = lerp(g, rg, rockWeight);
+  b = lerp(b, rb, rockWeight);
+
+  // snow cap blending in at altitude
+  const snowT = smoothstep(120, 175, h);
+  r = lerp(r, 235, snowT); g = lerp(g, 235, snowT); b = lerp(b, 240, snowT);
+
+  // water override (depth-tinted, slightly warmer in hot climates)
+  if (h < 2){
+    const depthT = clamp01((2-h)/70);
+    const warmShallow = {r:70,g:165,b:150}, coldShallow = {r:55,g:120,b:150};
+    const sr = lerp(coldShallow.r, warmShallow.r, c.temp);
+    const sg = lerp(coldShallow.g, warmShallow.g, c.temp);
+    const sb = lerp(coldShallow.b, warmShallow.b, c.temp);
+    const deep = {r:14,g:48,b:90};
+    r = lerp(sr, deep.r, depthT);
+    g = lerp(sg, deep.g, depthT);
+    b = lerp(sb, deep.b, depthT);
+  }
+
+  return {r,g,b};
+}
+
+function shadeAndFog(color, dist, fogColor, lightFactor){
+  const nightDim = settings.night ? 0.32 : 1;
+  let r = color.r*lightFactor*nightDim, g = color.g*lightFactor*nightDim, b = color.b*lightFactor*nightDim;
+  const fogDist = Math.max(2600, settings.cellSize * settings.radiusCells * 1.1);
+  const t = Math.min(1, dist/fogDist);
+  r = r + (fogColor.r - r)*t;
+  g = g + (fogColor.g - g)*t;
+  b = b + (fogColor.b - b)*t;
+  return `rgb(${r|0},${g|0},${b|0})`;
+}
+
+// static trees (fixed positions, generated once) — density & color follow biome
+let trees = [];
+function generateTrees(cap, candidatePool){
+  cap = cap === undefined ? 1100 : cap;
+  candidatePool = candidatePool === undefined ? 3600 : candidatePool;
+  const list = [];
+  let seed = 42;
+  function rnd(){ seed = (seed*1103515245+12345) & 0x7fffffff; return seed/0x7fffffff; }
+  for (let i=0;i<candidatePool;i++){
+    const x = (rnd()-0.5)*9000;
+    const z = (rnd()-0.5)*9000;
+    if (Math.sqrt(x*x+z*z) < 350) continue;
+    const h = terrainHeight(x,z);
+    if (h < 4 || h > 110) continue;
+    const c = getClimate(x,z);
+    const weights = climateWeights(c.temp, c.moisture);
+    let treeWeight = 0;
+    for (let k=0;k<CLIMATE_TYPES.length;k++) treeWeight += weights[k]*CLIMATE_TYPES[k].treeWeight;
+    treeWeight *= smoothstep(120,80,h); // thin out near snowline
+    if (rnd() > treeWeight*0.55) continue;
+    const jungleAmt = weights[4];
+    const treeColor = {
+      r: lerp(50, 18, jungleAmt),
+      g: lerp(110, 90, jungleAmt),
+      b: lerp(45, 42, jungleAmt)
+    };
+    list.push({x:x, z:z, h:h, color:treeColor});
+    if (list.length >= cap) break;
+  }
+  trees = list;
+}
+generateTrees();
+
+// static clouds
+const clouds = [];
+(function(){
+  let seed = 7;
+  function rnd(){ seed = (seed*1103515245+12345) & 0x7fffffff; return seed/0x7fffffff; }
+  for (let i=0;i<70;i++){
+    clouds.push({
+      x: (rnd()-0.5)*11000,
+      y: 190 + rnd()*300,
+      z: (rnd()-0.5)*11000,
+      r: 55 + rnd()*80
+    });
+  }
+})();
+
+// ---------- flight state ----------
+const WORLD_UP = v(0,1,0);
+let pos = v(0, 130, 220);
+let forward = v(0,0,-1);
+let up = v(0,1,0);
+let right = norm(cross(forward, up));
+
+let speed = 42, throttle = 0.42;
+let velocity = scl(forward, speed); // true world-space velocity (drives motion; forward is now just orientation)
+let pitchRate = 0, rollRate = 0, yawRate = 0;
+
+// real-ish arcade flight dynamics
+const GRAVITY = 26;       // constant downward acceleration
+const THRUST = 90;        // engine acceleration at full throttle
+const DRAG_COEFF = 90/(230*230); // wind resistance, opposes velocity, scales with speed^2
+const LIFT_COEFF = 0.0011;       // lift generated by airspeed, along the plane's own up vector
+
+let crashed = false;
+let gearDown = true;
+let crashStartTime = 0;
+let crashImpactSpeed = 0;
+let crashReason = '';
+let crashPanelShown = false;
+
+let keys = {};
+let cameraMode = 'first'; // 'first', 'third', or 'orbit'
+let orbitYaw = 0, orbitPitch = 0.3, orbitDist = 22;
+
+// ---------- customizable key bindings ----------
+const DEFAULT_KEYBINDINGS = {
+  pitchUp: 'KeyW', pitchDown: 'KeyS',
+  rollLeft: 'KeyA', rollRight: 'KeyD',
+  yawLeft: 'KeyQ', yawRight: 'KeyE',
+  throttleUp: 'ShiftLeft', throttleDown: 'KeyZ',
+  gear: 'KeyG', camera: 'Tab', pause: 'ShiftRight', reset: 'KeyR'
+};
+let keyBindings = Object.assign({}, DEFAULT_KEYBINDINGS);
+let awaitingBindFor = null; // action id currently listening for a new key, or null
+
+// ---------- keybinding persistence (localStorage) ----------
+// Note: file:// pages in some mobile browsers restrict or reset localStorage between
+// launches. This is best-effort: it degrades silently to session-only if unavailable.
+const STORAGE_KEY_BINDINGS = 'flightsim_keybindings_v1';
+
+function loadPersistedBindings(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_BINDINGS);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      keyBindings = Object.assign({}, DEFAULT_KEYBINDINGS, parsed);
+    }
+  } catch(e){}
+}
+loadPersistedBindings();
+
+// ---------- controller / gamepad support ----------
+// Fixed mapping on a standard gamepad (Xbox/PlayStation/MFi controllers all report as
+// "standard" in WebKit/Chromium once a button has been pressed at least once):
+//   Left stick: roll (X) / pitch (Y)   Right stick X: yaw
+//   Right trigger: throttle up   Left trigger: throttle down
+//   A/Cross: gear   Y/Triangle: cycle camera   B/Circle: reset   Start: pause
+const GAMEPAD_DEADZONE = 0.15;
+let gpPrevButtons = {};
+
+function getActiveGamepad(){
+  if (!navigator.getGamepads) return null;
+  const pads = navigator.getGamepads();
+  for (let i = 0; i < pads.length; i++){
+    if (pads[i]) return pads[i];
+  }
+  return null;
+}
+
+function gamepadDeadzone(v){
+  return Math.abs(v) < GAMEPAD_DEADZONE ? 0 : v;
+}
+
+function getGamepadAxes(){
+  const gp = getActiveGamepad();
+  if (!gp) return { roll:0, pitch:0, yaw:0, throttleUp:0, throttleDown:0 };
+  return {
+    roll: gamepadDeadzone(gp.axes[0] || 0),
+    pitch: gamepadDeadzone(gp.axes[1] || 0),
+    yaw: gamepadDeadzone(gp.axes[2] || 0),
+    throttleUp: (gp.buttons[7] && gp.buttons[7].value) || 0,
+    throttleDown: (gp.buttons[6] && gp.buttons[6].value) || 0
+  };
+}
+
+// one-shot buttons need edge detection since the Gamepad API is poll-based, not event-based
+function pollGamepadButtons(){
+  const gp = getActiveGamepad();
+  if (!gp) return;
+  function pressedEdge(index){
+    const btn = gp.buttons[index];
+    const isPressed = !!(btn && btn.pressed);
+    const wasPressed = !!gpPrevButtons[index];
+    gpPrevButtons[index] = isPressed;
+    return isPressed && !wasPressed;
+  }
+  if (pressedEdge(9)) togglePause(); // Start — works even while paused/crashed
+  if (pressedEdge(15)) toggleAdvancedPanel(); // D-pad Right — works anytime
+  if (!started) return;
+  if (crashed){
+    if (pressedEdge(0) || pressedEdge(1)) restartAfterCrash(); // A or B
+  } else if (!paused){
+    if (pressedEdge(0)) toggleGear();        // A / Cross
+    if (pressedEdge(3)) cycleCameraMode();   // Y / Triangle
+    if (pressedEdge(1)) restartAfterCrash(); // B / Circle
+  }
+}
+
+function updateGamepadStatus(){
+  const el = document.getElementById('gamepadStatus');
+  if (!el) return;
+  const gp = getActiveGamepad();
+  el.textContent = gp ? ('Controller: Connected (' + gp.id + ')') : 'Controller: Not connected';
+}
+window.addEventListener('gamepadconnected', updateGamepadStatus);
+window.addEventListener('gamepaddisconnected', updateGamepadStatus);
+
+function savePersisted(){
+  try { localStorage.setItem(STORAGE_KEY_BINDINGS, JSON.stringify(keyBindings)); } catch(e){}
+  try {
+    const toSave = {};
+    for (const f of PERSISTED_SETTINGS_FIELDS) toSave[f] = settings[f];
+    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(toSave));
+  } catch(e){}
+}
+
+// ---------- sound (Web Audio API, fully synthesized, no audio files) ----------
+let audioCtx = null;
+let masterGain = null;
+let audioNodes = null;
+
+function initAudio(){
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(err){ audioCtx = null; return; }
+  if (audioCtx.state === 'suspended'){ audioCtx.resume().catch(()=>{}); }
+
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = settings.muted ? 0 : settings.volume;
+  masterGain.connect(audioCtx.destination);
+
+  // -- engine drone: two slightly detuned sawtooth oscillators through a lowpass filter --
+  const osc1 = audioCtx.createOscillator();
+  osc1.type = 'sawtooth';
+  const osc2 = audioCtx.createOscillator();
+  osc2.type = 'sawtooth';
+  osc2.detune.value = 7;
+
+  const engineFilter = audioCtx.createBiquadFilter();
+  engineFilter.type = 'lowpass';
+  engineFilter.frequency.value = 900;
+
+  const engineGain = audioCtx.createGain();
+  engineGain.gain.value = 0.0001;
+
+  osc1.connect(engineFilter);
+  osc2.connect(engineFilter);
+  engineFilter.connect(engineGain);
+  engineGain.connect(masterGain);
+  osc1.start();
+  osc2.start();
+
+  // -- wind noise: looping white-noise buffer through a bandpass filter --
+  const bufferSize = 2 * audioCtx.sampleRate;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) noiseData[i] = Math.random()*2 - 1;
+
+  const noiseSource = audioCtx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+  noiseSource.loop = true;
+
+  const windFilter = audioCtx.createBiquadFilter();
+  windFilter.type = 'bandpass';
+  windFilter.frequency.value = 500;
+  windFilter.Q.value = 0.5;
+
+  const windGain = audioCtx.createGain();
+  windGain.gain.value = 0.0001;
+
+  noiseSource.connect(windFilter);
+  windFilter.connect(windGain);
+  windGain.connect(masterGain);
+  noiseSource.start();
+
+  audioNodes = { osc1, osc2, engineFilter, engineGain, windFilter, windGain };
+
+  initRadioBus();
+  if (settings.radioStation !== 'off'){
+    radioStep = 0;
+    radioNextTime = audioCtx.currentTime + 0.05;
+    radioSchedulerTimer = setInterval(radioSchedulerTick, RADIO_LOOKAHEAD_MS);
+  }
+}
+
+function updateEngineSound(){
+  if (!audioCtx || !audioNodes) return;
+  const now = audioCtx.currentTime;
+  const speedFactor = Math.min(1, speed/230);
+
+  const freq = 55 + (210-55) * (0.4*throttle + 0.6*speedFactor);
+  audioNodes.osc1.frequency.setTargetAtTime(freq, now, 0.06);
+  audioNodes.osc2.frequency.setTargetAtTime(freq*1.003, now, 0.06);
+
+  const silence = crashed || !started || paused;
+  const engineVol = silence ? 0.0001 : (0.05 + 0.22*throttle);
+  audioNodes.engineGain.gain.setTargetAtTime(engineVol, now, 0.1);
+
+  const windVol = silence ? 0.0001 : Math.min(0.28, 0.03 + 0.24*speedFactor);
+  audioNodes.windGain.gain.setTargetAtTime(windVol, now, 0.2);
+  audioNodes.windFilter.frequency.setTargetAtTime(400 + 1400*speedFactor, now, 0.25);
+}
+
+function playGearSound(){
+  if (!audioCtx || !masterGain) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(220, t);
+  osc.frequency.exponentialRampToValueAtTime(70, t+0.15);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+0.18);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(t); osc.stop(t+0.2);
+}
+
+function playCrashSound(){
+  if (!audioCtx || !masterGain) return;
+  const t = audioCtx.currentTime;
+
+  // low thump
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(130, t);
+  osc.frequency.exponentialRampToValueAtTime(28, t+0.5);
+  const oGain = audioCtx.createGain();
+  oGain.gain.setValueAtTime(0.55, t);
+  oGain.gain.exponentialRampToValueAtTime(0.0001, t+0.6);
+  osc.connect(oGain); oGain.connect(masterGain);
+  osc.start(t); osc.stop(t+0.6);
+
+  // crunch: decaying filtered noise burst
+  const bufferSize = Math.floor(audioCtx.sampleRate * 0.4);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 1400;
+  const nGain = audioCtx.createGain();
+  nGain.gain.setValueAtTime(0.55, t);
+  nGain.gain.exponentialRampToValueAtTime(0.0001, t+0.4);
+  src.connect(filt); filt.connect(nGain); nGain.connect(masterGain);
+  src.start(t);
+}
+
+function setMasterVolume(){
+  if (!masterGain || !audioCtx) return;
+  masterGain.gain.setTargetAtTime(settings.muted ? 0 : settings.volume, audioCtx.currentTime, 0.05);
+}
+
+// ---------- procedural radio (fully synthesized, original, no samples) ----------
+let radioGain = null;
+let radioSchedulerTimer = null;
+let radioNextTime = 0;
+let radioStep = 0;
+const RADIO_LOOKAHEAD_MS = 100;
+const RADIO_SCHEDULE_AHEAD = 0.25;
+
+function initRadioBus(){
+  if (!audioCtx || radioGain) return;
+  radioGain = audioCtx.createGain();
+  radioGain.gain.value = settings.radioVolume;
+  radioGain.connect(masterGain);
+}
+
+function setRadioVolume(){
+  if (!radioGain || !audioCtx) return;
+  radioGain.gain.setTargetAtTime(settings.radioVolume, audioCtx.currentTime, 0.05);
+}
+
+// -- shared synth building blocks --
+function radioTone(freq, time, dur, type, peakGain, attack, release){
+  if (!audioCtx || !radioGain) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, time);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(peakGain, time + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + attack + release);
+  osc.connect(g); g.connect(radioGain);
+  osc.start(time); osc.stop(time + attack + release + 0.05);
+}
+
+function radioNoiseHit(time, dur, filterType, freq, peakGain){
+  if (!audioCtx || !radioGain) return;
+  const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = filterType;
+  filt.frequency.value = freq;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(peakGain, time);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+  src.connect(filt); filt.connect(g); g.connect(radioGain);
+  src.start(time);
+}
+
+function radioKick(time){
+  if (!audioCtx || !radioGain) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, time);
+  osc.frequency.exponentialRampToValueAtTime(38, time + 0.18);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.9, time);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.28);
+  osc.connect(g); g.connect(radioGain);
+  osc.start(time); osc.stop(time + 0.3);
+}
+
+function radioSub808(time, dur){
+  if (!audioCtx || !radioGain) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(55, time);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.5, time + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+  osc.connect(g); g.connect(radioGain);
+  osc.start(time); osc.stop(time + dur + 0.05);
+}
+
+function radioClap(time){
+  radioNoiseHit(time, 0.18, 'bandpass', 1800, 0.5);
+}
+function radioHihat(time, open){
+  radioNoiseHit(time, open ? 0.22 : 0.05, 'highpass', 7500, open ? 0.22 : 0.28);
+}
+
+function radioPadChord(freqs, time, dur){
+  for (const f of freqs) radioTone(f, time, dur*0.55, 'sine', 0.05, dur*0.4, dur*0.75);
+}
+function radioPluck(freq, time, type, peakGain){
+  radioTone(freq, time, 0.9, type || 'triangle', peakGain || 0.09, 0.01, 0.55);
+}
+function radioBassNote(freq, time, dur){
+  radioTone(freq, time, dur, 'triangle', 0.16, 0.008, dur*0.85);
+}
+
+// -- station patterns --
+const CHILL_CHORDS = [
+  [130.81, 164.81, 196.00, 246.94], // Cmaj7
+  [110.00, 130.81, 164.81, 196.00], // Am7
+  [87.31, 110.00, 130.81, 174.61],  // Fmaj7
+  [98.00, 123.47, 146.83, 174.61]   // G7
+];
+function scheduleChillStep(step, time){
+  const stepsPerChord = 32;
+  const chordIdx = Math.floor(step / stepsPerChord) % CHILL_CHORDS.length;
+  if (step % stepsPerChord === 0){
+    radioPadChord(CHILL_CHORDS[chordIdx], time, (stepsPerChord/32)*13.7);
+  }
+  if (Math.random() < 0.07){
+    const chord = CHILL_CHORDS[chordIdx];
+    const note = chord[Math.floor(Math.random()*chord.length)] * 2;
+    radioPluck(note, time, 'sine', 0.06);
+  }
+}
+
+const JAZZ_BASS = [ [73.42,82.41,98.00,110.00], [98.00,87.31,82.41,73.42], [65.41,82.41,98.00,73.42], [110.00,98.00,87.31,82.41] ];
+const JAZZ_CHORDS = [ [174.61,220.00,261.63], [196.00,246.94,293.66], [130.81,164.81,196.00], [220.00,261.63,329.63] ];
+function scheduleJazzyStep(step, time){
+  const bar = Math.floor(step/8) % JAZZ_BASS.length;
+  const beat = step % 8;
+  if (beat % 2 === 0) radioBassNote(JAZZ_BASS[bar][(beat/2)|0], time, 0.4);
+  if (beat === 3 || beat === 7) radioPadChord(JAZZ_CHORDS[bar], time, 0.5);
+  if (Math.random() < 0.5) radioHihat(time, false);
+}
+
+function scheduleTrapStep(step, time){
+  const s = step % 16;
+  if (s === 0 || s === 10) radioKick(time);
+  if (s === 0 || s === 8) radioSub808(time, 0.5);
+  if (s === 4 || s === 12) radioClap(time);
+  radioHihat(time, s === 14);
+  if (s === 15 && Math.random() < 0.3){
+    radioHihat(time + 0.025, false);
+    radioHihat(time + 0.05, false);
+  }
+}
+
+const RADIO_STEP_DURATIONS = { chill: 0.42, jazzy: 0.24, trap: 0.1071 };
+
+function radioSchedulerTick(){
+  if (!audioCtx || settings.radioStation === 'off') return;
+  const stepDur = RADIO_STEP_DURATIONS[settings.radioStation] || 0.2;
+  while (radioNextTime < audioCtx.currentTime + RADIO_SCHEDULE_AHEAD){
+    if (settings.radioStation === 'chill') scheduleChillStep(radioStep, radioNextTime);
+    else if (settings.radioStation === 'jazzy') scheduleJazzyStep(radioStep, radioNextTime);
+    else if (settings.radioStation === 'trap') scheduleTrapStep(radioStep, radioNextTime);
+    radioNextTime += stepDur;
+    radioStep++;
+  }
+}
+
+function playStationSwitchBlip(){
+  radioNoiseHit(audioCtx ? audioCtx.currentTime : 0, 0.12, 'bandpass', 2200, 0.3);
+}
+
+function setRadioStation(station){
+  settings.radioStation = station;
+  if (audioCtx){
+    initRadioBus();
+    if (station !== 'off') playStationSwitchBlip();
+  }
+  if (radioSchedulerTimer){ clearInterval(radioSchedulerTimer); radioSchedulerTimer = null; }
+  if (station !== 'off' && audioCtx){
+    radioStep = 0;
+    radioNextTime = audioCtx.currentTime + 0.05;
+    radioSchedulerTimer = setInterval(radioSchedulerTick, RADIO_LOOKAHEAD_MS);
+  }
+  syncAdvancedPanel();
+  savePersisted();
+}
+
+const ACTION_LABELS = [
+  {id:'pitchUp', label:'Pitch Up (climb)'},
+  {id:'pitchDown', label:'Pitch Down (dive)'},
+  {id:'rollLeft', label:'Roll Left'},
+  {id:'rollRight', label:'Roll Right'},
+  {id:'yawLeft', label:'Yaw Left'},
+  {id:'yawRight', label:'Yaw Right'},
+  {id:'throttleUp', label:'Throttle Up'},
+  {id:'throttleDown', label:'Throttle Down'},
+  {id:'gear', label:'Landing Gear'},
+  {id:'camera', label:'Cycle Camera'},
+  {id:'pause', label:'Pause / Settings'},
+  {id:'reset', label:'Reset / Restart'}
+];
+
+const KEY_LABEL_MAP = {
+  ShiftLeft:'L Shift', ShiftRight:'R Shift', ControlLeft:'L Ctrl', ControlRight:'R Ctrl',
+  AltLeft:'L Alt', AltRight:'R Alt', Space:'Space', Tab:'Tab', Enter:'Enter', Escape:'Esc',
+  ArrowUp:'\u2191', ArrowDown:'\u2193', ArrowLeft:'\u2190', ArrowRight:'\u2192'
+};
+function keyLabel(code){
+  if (!code) return '—';
+  if (KEY_LABEL_MAP[code]) return KEY_LABEL_MAP[code];
+  if (code.indexOf('Key') === 0) return code.slice(3);
+  if (code.indexOf('Digit') === 0) return code.slice(5);
+  return code;
+}
+
+function orbitOffset(yaw, pitch, dist){
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  return v(dist*cp*sy, dist*sp, dist*cp*cy);
+}
+
+function cameraLabel(mode){
+  return mode === 'first' ? '1st person' : (mode === 'third' ? '3rd person' : 'Orbit');
+}
+
+function setCameraMode(mode){
+  if (mode === 'orbit' && cameraMode !== 'orbit'){
+    // derive a sensible starting orbit angle behind the plane
+    const desired = add(pos, add(scl(forward,-20), scl(up,6)));
+    const offsetWorld = sub(desired, pos);
+    const dist = Math.max(8, len(offsetWorld));
+    const pitch = Math.max(-1.4, Math.min(1.4, Math.asin(offsetWorld.y/dist)));
+    const cp = Math.cos(pitch) || 0.0001;
+    orbitYaw = Math.atan2(offsetWorld.x/(dist*cp), offsetWorld.z/(dist*cp));
+    orbitPitch = pitch;
+    orbitDist = dist;
+  }
+  cameraMode = mode;
+  const btn = document.getElementById('camBtn');
+  if (btn) btn.textContent = 'View: ' + cameraLabel(mode);
+  syncSettingsPanel();
+}
+
+function cycleCameraMode(){
+  const order = ['first','third','orbit'];
+  const next = order[(order.indexOf(cameraMode)+1) % order.length];
+  setCameraMode(next);
+}
+
+window.addEventListener('keydown', e => {
+  if (awaitingBindFor){
+    e.preventDefault();
+    if (e.repeat) return;
+    if (e.code === 'Escape'){
+      awaitingBindFor = null;
+      renderControlsTab();
+      return;
+    }
+    // clear this code from any other action so we never double-bind
+    for (const key in keyBindings){
+      if (keyBindings[key] === e.code) keyBindings[key] = null;
+    }
+    keyBindings[awaitingBindFor] = e.code;
+    awaitingBindFor = null;
+    renderControlsTab();
+    savePersisted();
+    return;
+  }
+
+  keys[e.code] = true;
+  if (['Space','Tab','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) !== -1){
+    e.preventDefault(); // stop page scroll/focus-shift regardless of current binding
+  }
+  if (e.code === keyBindings.camera){
+    e.preventDefault();
+    cycleCameraMode();
+  }
+  if (e.code === keyBindings.pause){
+    e.preventDefault();
+    if (!e.repeat) togglePause();
+  }
+  if (e.code === keyBindings.reset && !e.repeat){
+    e.preventDefault();
+    restartAfterCrash();
+  }
+  if (e.code === keyBindings.gear && !e.repeat){
+    e.preventDefault();
+    toggleGear();
+  }
+  if (e.code === 'KeyX' && !e.repeat){
+    e.preventDefault();
+    toggleAdvancedPanel();
+  }
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// touch controls
+let touchState = { leftX:0, leftY:0, rightX:0, rightY:0, leftActive:false, rightActive:false };
+function setupStick(stickEl, knobEl, isLeft){
+  let touchId = null;
+  const rectFor = () => stickEl.getBoundingClientRect();
+  function start(e){
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    touchId = t.identifier !== undefined ? t.identifier : 'mouse';
+    move(e);
+    e.preventDefault();
+  }
+  function move(e){
+    const t = e.changedTouches ? [...e.changedTouches].find(tt => tt.identifier === touchId) : e;
+    if (!t) return;
+    const r = rectFor();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    let dx = (t.clientX - cx) / (r.width/2);
+    let dy = (t.clientY - cy) / (r.height/2);
+    const m = Math.sqrt(dx*dx+dy*dy);
+    if (m > 1){ dx/=m; dy/=m; }
+    knobEl.style.transform = `translate(${dx*35}px, ${dy*35}px)`;
+    if (isLeft){ touchState.leftX = dx; touchState.leftY = dy; touchState.leftActive = true; }
+    else { touchState.rightX = dx; touchState.rightY = dy; touchState.rightActive = true; }
+    e.preventDefault && e.preventDefault();
+  }
+  function end(e){
+    touchId = null;
+    knobEl.style.transform = 'translate(0,0)';
+    if (isLeft){ touchState.leftX = 0; touchState.leftY = 0; touchState.leftActive = false; }
+    else { touchState.rightX = 0; touchState.rightY = 0; touchState.rightActive = false; }
+  }
+  stickEl.addEventListener('touchstart', start, {passive:false});
+  stickEl.addEventListener('touchmove', move, {passive:false});
+  stickEl.addEventListener('touchend', end);
+  stickEl.addEventListener('touchcancel', end);
+}
+setupStick(document.getElementById('leftStick'), document.getElementById('leftKnob'), true);
+setupStick(document.getElementById('rightStick'), document.getElementById('rightKnob'), false);
+
+function resetPlane(){
+  pos = v(0, 130, 220);
+  forward = v(0,0,-1);
+  up = v(0,1,0);
+  right = norm(cross(forward, up));
+  speed = 42; throttle = 0.42;
+  velocity = scl(forward, speed);
+  pitchRate = rollRate = yawRate = 0;
+  crashed = false;
+  crashPanelShown = false;
+  gearDown = true;
+  const overlay = document.getElementById('crashOverlay');
+  if (overlay) overlay.style.display = 'none';
+  updateGearBtn();
+}
+
+function toggleGear(){
+  if (crashed) return;
+  gearDown = !gearDown;
+  updateGearBtn();
+  playGearSound();
+}
+function updateGearBtn(){
+  const btn = document.getElementById('gearBtn');
+  if (btn) btn.textContent = 'Gear: ' + (gearDown ? 'DOWN' : 'UP');
+}
+
+function triggerCrash(impactSpeed, reason){
+  if (crashed) return;
+  crashed = true;
+  crashImpactSpeed = impactSpeed;
+  crashReason = reason;
+  crashStartTime = performance.now();
+  crashPanelShown = false;
+  speed = 0;
+  playCrashSound();
+}
+
+function restartAfterCrash(e){
+  if (e) e.preventDefault();
+  resetPlane();
+}
+
+let started = false;
+let paused = false;
+let isTouchDevice = false;
+let lastT = performance.now();
+
+let fpsFrameCount = 0, fpsDisplay = 0;
+let lastFpsUpdate = performance.now();
+let lastGamepadStatusCheck = 0;
+
+function updateFlight(dt){
+  const gp = getGamepadAxes();
+
+  // throttle
+  if (keys[keyBindings.throttleUp]) throttle = Math.min(1, throttle + dt*0.5);
+  if (keys[keyBindings.throttleDown]) throttle = Math.max(0, throttle - dt*0.5);
+  throttle = Math.min(1, Math.max(0, throttle + (-touchState.rightY>0.15 ? dt*0.5*Math.sign(-touchState.rightY) : 0)));
+  if (gp.throttleUp > 0.05) throttle = Math.min(1, throttle + dt*0.5*gp.throttleUp);
+  if (gp.throttleDown > 0.05) throttle = Math.max(0, throttle - dt*0.5*gp.throttleDown);
+
+  let pitchInput = (keys[keyBindings.pitchDown]?1:0) - (keys[keyBindings.pitchUp]?1:0);
+  let rollInput = (keys[keyBindings.rollRight]?1:0) - (keys[keyBindings.rollLeft]?1:0);
+  let yawInput = (keys[keyBindings.yawRight]?1:0) - (keys[keyBindings.yawLeft]?1:0);
+
+  if (touchState.leftActive){ rollInput += touchState.leftX; pitchInput += touchState.leftY; }
+  if (touchState.rightActive){ yawInput += touchState.rightX; }
+
+  rollInput += gp.roll;
+  pitchInput += gp.pitch;
+  yawInput += gp.yaw;
+
+  pitchInput = Math.max(-1, Math.min(1, pitchInput));
+  rollInput = Math.max(-1, Math.min(1, rollInput));
+  yawInput = Math.max(-1, Math.min(1, yawInput));
+
+  const turnRate = 0.85;
+  pitchRate += pitchInput * turnRate * dt;
+  rollRate += rollInput * turnRate * 1.7 * dt;
+  yawRate += yawInput * turnRate * 0.75 * dt;
+
+  // apply rotations to basis using current axes
+  forward = norm(rotAxis(forward, right, -pitchRate*dt));
+  up = norm(rotAxis(up, right, -pitchRate*dt));
+
+  up = norm(rotAxis(up, forward, rollRate*dt));
+  right = norm(rotAxis(right, forward, rollRate*dt));
+
+  forward = norm(rotAxis(forward, up, -yawRate*dt));
+  right = norm(rotAxis(right, up, -yawRate*dt));
+
+  // re-orthonormalize
+  forward = norm(forward);
+  right = norm(cross(forward, up));
+  up = cross(right, forward);
+
+  pitchRate *= 0.9; rollRate *= 0.92; yawRate *= 0.85;
+
+  // ---- real force-based physics: gravity + thrust + drag (wind resistance) + lift ----
+  const thrustMult = settings.turbo ? 3 : 1;
+  const dragMult = gearDown ? 1.5 : 1;
+
+  let accel = v(0, -GRAVITY, 0);                       // gravity, always down
+  accel = add(accel, scl(forward, throttle * THRUST * thrustMult)); // engine thrust along nose
+
+  if (speed > 0.001){
+    const dragMag = DRAG_COEFF * dragMult * speed * speed;   // wind resistance ~ speed^2
+    accel = add(accel, scl(velocity, -dragMag/speed));
+  }
+  accel = add(accel, scl(up, LIFT_COEFF * speed * speed));   // lift ~ airspeed^2, along wings' up
+
+  velocity = add(velocity, scl(accel, dt));
+  speed = len(velocity);
+
+  pos = add(pos, scl(velocity, dt));
+
+  if (settings.noClip){
+    // pass through everything, no collision at all
+  } else {
+    // tree collision (checked before ground so a tree strike takes priority)
+    let treeHit = false;
+    for (let i=0; i<trees.length; i++){
+      const t = trees[i];
+      const dx = t.x-pos.x, dz = t.z-pos.z;
+      if (dx*dx+dz*dz < 16){ // within ~4 units horizontally
+        if (pos.y > t.h-2 && pos.y < t.h+18){ treeHit = true; break; }
+      }
+    }
+    if (treeHit && !settings.godMode){
+      triggerCrash(speed, 'You flew into a tree.');
+    } else if (!treeHit){
+      const groundH = Math.max(terrainHeight(pos.x, pos.z), 1.5);
+      if (pos.y < groundH + 3){
+        if (settings.godMode){
+          pos.y = groundH + 3;
+          velocity.y = Math.max(0, velocity.y);
+          velocity = scl(velocity, 0.98);
+          speed = len(velocity);
+        } else if (!gearDown){
+          triggerCrash(speed, 'Belly landing — your gear was up!');
+        } else {
+          const bankDot = dot(up, WORLD_UP);          // 1 = wings level, lower = steeper bank
+          const noseDot = dot(forward, WORLD_UP);      // negative = descending
+          const sinkRate = Math.max(0, -velocity.y);   // true vertical descent speed
+
+          const tooFast = speed > 135;
+          const tooSteepBank = bankDot < 0.82;   // roughly more than ~35 degrees of bank
+          const tooSteepDive = noseDot < -0.45;  // roughly more than ~27 degrees nose-down
+          const tooFastSink = sinkRate > 55;
+
+          if (tooFast || tooSteepBank || tooSteepDive || tooFastSink){
+            let reason = 'You hit the ground too hard.';
+            if (tooSteepBank) reason = 'You rolled into the ground.';
+            else if (tooSteepDive) reason = 'Nose-first impact with the ground.';
+            else if (tooFast) reason = 'You were flying too fast to land.';
+            triggerCrash(speed, reason);
+          } else {
+            // gentle, level, slow touchdown -> safe skid instead of a crash
+            pos.y = groundH + 3;
+            velocity.y = Math.max(0, velocity.y);
+            velocity = scl(velocity, 0.98);
+            speed = len(velocity);
+          }
+        }
+      }
+    }
+  }
+  if (pos.y > 1300) pos.y = 1300;
+}
+
+// ---------- camera ----------
+let camPos = pos, camForward = forward, camUp = up, camRight = right;
+function updateCamera(){
+  if (cameraMode === 'third'){
+    camPos = add(pos, add(scl(forward, -20), scl(up, 6)));
+    camForward = forward; camUp = up; camRight = right;
+  } else if (cameraMode === 'orbit'){
+    const offset = orbitOffset(orbitYaw, orbitPitch, orbitDist);
+    camPos = add(pos, offset);
+    camForward = norm(sub(pos, camPos));
+    camRight = norm(cross(camForward, WORLD_UP));
+    camUp = cross(camRight, camForward);
+  } else {
+    camPos = add(pos, scl(forward, 1.0));
+    camForward = forward; camUp = up; camRight = right;
+  }
+  if (crashed){
+    const elapsed = (performance.now() - crashStartTime) / 1000;
+    const shake = Math.max(0, 1 - elapsed/0.6) * 3.2;
+    if (shake > 0){
+      camPos = add(camPos, v((Math.random()-0.5)*shake, (Math.random()-0.5)*shake, (Math.random()-0.5)*shake));
+    }
+  }
+}
+
+// ---------- projection ----------
+function project(p){
+  const rel = sub(p, camPos);
+  const cz = dot(rel, camForward);
+  if (cz <= 0.5) return null;
+  const cx = dot(rel, camRight);
+  const cy = dot(rel, camUp);
+  return {
+    x: W/2 + (cx/cz)*focal,
+    y: H/2 - (cy/cz)*focal,
+    z: cz
+  };
+}
+
+function skyColorAt(t){
+  // t: 0 = horizon, 1 = zenith
+  if (settings.night){
+    const top = {r:8,g:10,b:28};
+    const bottom = {r:28,g:26,b:52};
+    return {
+      r: bottom.r + (top.r-bottom.r)*t,
+      g: bottom.g + (top.g-bottom.g)*t,
+      b: bottom.b + (top.b-bottom.b)*t
+    };
+  }
+  const top = {r:70,g:130,b:210};
+  const bottom = {r:190,g:220,b:245};
+  return {
+    r: bottom.r + (top.r-bottom.r)*t,
+    g: bottom.g + (top.g-bottom.g)*t,
+    b: bottom.b + (top.b-bottom.b)*t
+  };
+}
+
+function drawSky(){
+  const horizonFog = skyColorAt(0);
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  const zen = skyColorAt(1);
+  grad.addColorStop(0, `rgb(${zen.r|0},${zen.g|0},${zen.b|0})`);
+  grad.addColorStop(0.55, `rgb(${horizonFog.r|0},${horizonFog.g|0},${horizonFog.b|0})`);
+  grad.addColorStop(1, `rgb(${horizonFog.r|0},${horizonFog.g|0},${horizonFog.b|0})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+}
+
+function drawClouds(fogColor){
+  ctx.save();
+  const cloudDist = Math.max(5500, settings.cellSize * settings.radiusCells * 1.6);
+  for (const c of clouds){
+    const p = project(v(c.x,c.y,c.z));
+    if (!p) continue;
+    if (p.z > cloudDist) continue;
+    const scale = focal / p.z;
+    const r = c.r * scale;
+    if (r < 1 || p.x < -200 || p.x > W+200 || p.y < -200 || p.y > H+200) continue;
+    const alpha = Math.max(0, 1 - p.z/cloudDist);
+    ctx.fillStyle = settings.night ? `rgba(70,75,110,${0.7*alpha})` : `rgba(255,255,255,${0.75*alpha})`;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, r, r*0.55, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawTerrain(fogColor){
+  const baseCell = settings.cellSize;
+  const targetDist = baseCell * settings.radiusCells; // same "world reach" meaning as before
+  const ringTiles = 9; // half-width of each LOD ring, measured in that ring's own tile count
+
+  const quads = [];
+  let cellSize = baseCell;
+  let innerHalf = 0; // distance already covered by the previous (finer) ring
+  let level = 0;
+
+  while (true){
+    const originX = Math.floor(camPos.x/cellSize)*cellSize;
+    const originZ = Math.floor(camPos.z/cellSize)*cellSize;
+
+    for (let i=-ringTiles; i<ringTiles; i++){
+      for (let j=-ringTiles; j<ringTiles; j++){
+        const x0 = originX + i*cellSize, x1 = x0+cellSize;
+        const z0 = originZ + j*cellSize, z1 = z0+cellSize;
+        const ccx = (x0+x1)/2, ccz = (z0+z1)/2;
+
+        // skip cells already covered by a finer inner ring (keeps rings from overlapping)
+        const chebyshev = Math.max(Math.abs(ccx-camPos.x), Math.abs(ccz-camPos.z));
+        if (chebyshev < innerHalf) continue;
+
+        const h00 = terrainHeight(x0,z0), h10 = terrainHeight(x1,z0);
+        const h11 = terrainHeight(x1,z1), h01 = terrainHeight(x0,z1);
+
+        const w00 = v(x0,h00,z0), w10 = v(x1,h10,z0), w11 = v(x1,h11,z1), w01 = v(x0,h01,z1);
+        const p00 = project(w00);
+        const p10 = project(w10);
+        const p11 = project(w11);
+        const p01 = project(w01);
+        if (!p00 || !p10 || !p11 || !p01) continue;
+
+        // skip fully offscreen quads (cheap bbox test)
+        const minX = Math.min(p00.x,p10.x,p11.x,p01.x), maxX = Math.max(p00.x,p10.x,p11.x,p01.x);
+        const minY = Math.min(p00.y,p10.y,p11.y,p01.y), maxY = Math.max(p00.y,p10.y,p11.y,p01.y);
+        if (maxX < 0 || minX > W || maxY < 0 || minY > H) continue;
+
+        // face normal from two edges, for simple diffuse shading (gouraud-ish look)
+        const e1 = sub(w10, w00), e2 = sub(w01, w00);
+        const normal = norm(cross(e2, e1));
+        const light = Math.max(0.35, Math.min(1, 0.45 + 0.65*dot(normal, SUN_DIR)));
+
+        const avgH = (h00+h10+h11+h01)/4;
+        const avgZ = (p00.z+p10.z+p11.z+p01.z)/4;
+        const bcolor = biomeColorAt(ccx, ccz, avgH);
+        quads.push({p00,p10,p11,p01,avgZ,light,bcolor});
+      }
+    }
+
+    innerHalf = ringTiles * cellSize; // this ring's coverage becomes the next ring's inner cutoff
+    if (innerHalf >= targetDist || level > 14) break;
+    cellSize *= 2; // each successive ring doubles tile size, doubling coverage for roughly flat quad cost
+    level++;
+  }
+
+  quads.sort((a,b) => b.avgZ - a.avgZ); // far first
+
+  for (const q of quads){
+    ctx.beginPath();
+    ctx.moveTo(q.p00.x, q.p00.y);
+    ctx.lineTo(q.p10.x, q.p10.y);
+    ctx.lineTo(q.p11.x, q.p11.y);
+    ctx.lineTo(q.p01.x, q.p01.y);
+    ctx.closePath();
+    if (settings.wireframe){
+      ctx.strokeStyle = 'rgba(80,255,140,0.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = shadeAndFog(q.bcolor, q.avgZ, fogColor, q.light);
+      ctx.fill();
+    }
+  }
+}
+
+function drawTrees(fogColor){
+  const list = [];
+  const treeDist = settings.cellSize * settings.radiusCells * 1.3;
+  for (const t of trees){
+    const dx = t.x-camPos.x, dz = t.z-camPos.z;
+    if (dx*dx+dz*dz > treeDist*treeDist) continue;
+    const base = project(v(t.x, t.h, t.z));
+    const tip = project(v(t.x, t.h+16, t.z));
+    if (!base || !tip) continue;
+    list.push({base, tip, z: base.z, color: t.color});
+  }
+  list.sort((a,b)=>b.z-a.z);
+  for (const t of list){
+    const scale = focal / t.base.z;
+    const w = 3.2*scale;
+    const alpha = Math.max(0.15, 1 - t.base.z/2600);
+    const r = lerp(fogColor.r, t.color.r, alpha);
+    const g = lerp(fogColor.g, t.color.g, alpha);
+    const b = lerp(fogColor.b, t.color.b, alpha);
+    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.beginPath();
+    ctx.moveTo(t.tip.x, t.tip.y);
+    ctx.lineTo(t.base.x-w, t.base.y);
+    ctx.lineTo(t.base.x+w, t.base.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawSun(){
+  const p = project(add(camPos, scl(SUN_DIR, 3000)));
+  if (!p) return;
+  const scale = focal/3000;
+  const r = 55*scale + 20;
+  const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*2.2);
+  if (settings.night){
+    grad.addColorStop(0, 'rgba(220,225,240,0.85)');
+    grad.addColorStop(0.4, 'rgba(180,190,220,0.35)');
+    grad.addColorStop(1, 'rgba(180,190,220,0)');
+  } else {
+    grad.addColorStop(0, 'rgba(255,250,220,0.95)');
+    grad.addColorStop(0.4, 'rgba(255,240,180,0.5)');
+    grad.addColorStop(1, 'rgba(255,240,180,0)');
+  }
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,r*2.2,0,Math.PI*2);
+  ctx.fill();
+}
+
+function drawPlaneModel(){
+  // simple low-poly paper-plane-like model, built from the plane's own basis vectors
+  const nose = add(pos, scl(forward, 6.5));
+  const tailBottom = add(pos, add(scl(forward,-4.5), scl(up,-0.3)));
+  const tailTop = add(pos, add(scl(forward,-4), scl(up,1.6)));
+  const wingL = add(pos, add(scl(forward,-1), scl(right,-6.5)));
+  const wingR = add(pos, add(scl(forward,-1), scl(right,6.5)));
+
+  const triangles = [
+    { pts: [nose, wingR, tailBottom], color: 'rgb(230,230,235)' }, // right wing/body top
+    { pts: [nose, tailBottom, wingL], color: 'rgb(200,200,210)' }, // left wing/body top
+    { pts: [nose, tailTop, tailBottom], color: 'rgb(210,60,55)' }  // tail fin
+  ];
+
+  const projected = triangles.map(t => {
+    const pp = t.pts.map(project);
+    if (pp.some(p => !p)) return null;
+    const avgZ = (pp[0].z+pp[1].z+pp[2].z)/3;
+    return { pp, color: t.color, z: avgZ };
+  }).filter(Boolean);
+
+  projected.sort((a,b) => b.z - a.z);
+  for (const t of projected){
+    ctx.fillStyle = t.color;
+    ctx.beginPath();
+    ctx.moveTo(t.pp[0].x, t.pp[0].y);
+    ctx.lineTo(t.pp[1].x, t.pp[1].y);
+    ctx.lineTo(t.pp[2].x, t.pp[2].y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  if (gearDown){
+    const legs = [
+      [add(pos, scl(forward,4.2)), add(pos, add(scl(forward,4.2), scl(up,-1.7)))],
+      [add(pos, add(scl(forward,-0.5), scl(right,-4))), add(pos, add(scl(forward,-0.5), add(scl(right,-4), scl(up,-1.7))))],
+      [add(pos, add(scl(forward,-0.5), scl(right,4))),  add(pos, add(scl(forward,-0.5), add(scl(right,4),  scl(up,-1.7))))]
+    ];
+    ctx.strokeStyle = 'rgba(35,35,40,0.9)';
+    ctx.lineWidth = 2;
+    for (const [a,b] of legs){
+      const pa = project(a), pb = project(b);
+      if (!pa || !pb) continue;
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawPlaneOverlay(){
+  // simple cockpit-ish frame + nose reference for orientation feedback
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W/2-22,H/2);
+  ctx.lineTo(W/2-8,H/2);
+  ctx.moveTo(W/2+8,H/2);
+  ctx.lineTo(W/2+22,H/2);
+  ctx.moveTo(W/2,H/2-14);
+  ctx.lineTo(W/2,H/2-6);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function computeAttitude(){
+  const pitchDeg = Math.asin(Math.max(-1, Math.min(1, forward.y))) * 180/Math.PI;
+  const refRight = norm(cross(forward, WORLD_UP));
+  const cosR = dot(right, refRight);
+  const sinR = dot(cross(refRight, right), forward);
+  const rollDeg = Math.atan2(sinR, cosR) * 180/Math.PI;
+  return { pitchDeg, rollDeg };
+}
+
+function drawArtificialHorizon(){
+  if (settings.hideHud) return;
+  const { pitchDeg, rollDeg } = computeAttitude();
+  const cx = W/2, cy = H - 118, R = 58;
+  const pxPerDeg = R / 42;
+  const rollRad = -rollDeg * Math.PI/180; // negate so the horizon rotates opposite the bank, as on real AIs
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI*2);
+  ctx.clip();
+
+  ctx.translate(cx, cy);
+  ctx.rotate(rollRad);
+
+  const pitchOffset = pitchDeg * pxPerDeg;
+
+  // sky
+  ctx.fillStyle = '#4a90d9';
+  ctx.fillRect(-R*3, -R*3, R*6, R*6);
+  // ground
+  ctx.fillStyle = '#8a5a34';
+  ctx.fillRect(-R*3, pitchOffset, R*6, R*6);
+  // horizon line
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-R*3, pitchOffset);
+  ctx.lineTo(R*3, pitchOffset);
+  ctx.stroke();
+  // pitch reference ticks every 10 degrees, +/-20
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 1.5;
+  for (const d of [-20,-10,10,20]){
+    const y = pitchOffset - d*pxPerDeg;
+    const w = (d%20===0) ? 16 : 9;
+    ctx.beginPath();
+    ctx.moveTo(-w/2, y);
+    ctx.lineTo(w/2, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // bezel
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI*2);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(20,20,25,0.85)';
+  ctx.stroke();
+
+  // bank scale ticks (fixed to bezel, rotate with roll to show current bank)
+  ctx.translate(cx, cy);
+  ctx.rotate(rollRad);
+  ctx.strokeStyle = '#ffcc33';
+  ctx.lineWidth = 2;
+  for (const d of [-60,-30,0,30,60]){
+    const a = (-90 + d) * Math.PI/180; // 0 at top
+    const r1 = R-2, r2 = (d===0) ? R-12 : R-8;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*r1, Math.sin(a)*r1);
+    ctx.lineTo(Math.cos(a)*r2, Math.sin(a)*r2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // fixed aircraft reference symbol (does not rotate)
+  ctx.save();
+  ctx.strokeStyle = '#ffcc33';
+  ctx.fillStyle = '#ffcc33';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx-20, cy);
+  ctx.lineTo(cx-6, cy);
+  ctx.moveTo(cx+6, cy);
+  ctx.lineTo(cx+20, cy);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 2.5, 0, Math.PI*2);
+  ctx.fill();
+  // fixed top bank pointer
+  ctx.beginPath();
+  ctx.moveTo(cx, cy-R-2);
+  ctx.lineTo(cx-5, cy-R-10);
+  ctx.lineTo(cx+5, cy-R-10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCompassTape(){
+  if (settings.hideHud) return;
+  let heading = Math.atan2(-forward.x, -forward.z) * 180/Math.PI;
+  if (heading < 0) heading += 360;
+
+  const tapeWidth = Math.min(230, W - 170);
+  const tapeHeight = 24;
+  const cx = W/2, topY = 12;
+  const pxPerDeg = tapeWidth / 60; // 60 degree visible span
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(cx - tapeWidth/2, topY, tapeWidth, tapeHeight);
+
+  ctx.beginPath();
+  ctx.rect(cx - tapeWidth/2, topY, tapeWidth, tapeHeight);
+  ctx.clip();
+
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  for (let d = -30; d <= 30; d += 10){
+    let hdg = Math.round(heading + d);
+    hdg = ((hdg % 360) + 360) % 360;
+    const x = cx + d*pxPerDeg;
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, topY + tapeHeight - 7);
+    ctx.lineTo(x, topY + tapeHeight);
+    ctx.stroke();
+    let label;
+    if (hdg === 0) label = 'N';
+    else if (hdg === 90) label = 'E';
+    else if (hdg === 180) label = 'S';
+    else if (hdg === 270) label = 'W';
+    else label = hdg.toString();
+    ctx.fillStyle = (label.length===1) ? '#ffcc33' : '#fff';
+    ctx.fillText(label, x, topY + 15);
+  }
+  ctx.restore();
+
+  // fixed center pointer
+  ctx.fillStyle = '#ffcc33';
+  ctx.beginPath();
+  ctx.moveTo(cx-6, topY-7);
+  ctx.lineTo(cx+6, topY-7);
+  ctx.lineTo(cx, topY+3);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function updateHUD(){
+  document.getElementById('speed').textContent = Math.round(speed*3.2);
+  document.getElementById('altitude').textContent = Math.max(0, Math.round(pos.y - terrainHeight(pos.x,pos.z)));
+  let heading = Math.atan2(-forward.x, -forward.z) * 180/Math.PI;
+  if (heading < 0) heading += 360;
+  document.getElementById('heading').textContent = Math.round(heading);
+  document.getElementById('fps').textContent = fpsDisplay;
+  const gearEl = document.getElementById('gearStatus');
+  gearEl.textContent = 'Gear: ' + (gearDown ? 'DOWN' : 'UP');
+  gearEl.style.color = gearDown ? '#9fe870' : '#ff8a5c';
+  document.getElementById('throttleBar').style.width = (throttle*100)+'%';
+}
+
+function drawCrashFlash(){
+  const elapsed = (performance.now() - crashStartTime) / 1000;
+
+  const flashAlpha = Math.max(0, 1 - elapsed/0.35);
+  if (flashAlpha > 0){
+    ctx.fillStyle = `rgba(255,150,60,${(flashAlpha*0.8).toFixed(3)})`;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  const ringT = Math.min(1, elapsed/0.8);
+  if (ringT < 1){
+    ctx.save();
+    ctx.globalAlpha = (1-ringT)*0.55;
+    ctx.strokeStyle = 'rgba(255,120,40,0.9)';
+    ctx.lineWidth = 16*(1-ringT) + 2;
+    ctx.beginPath();
+    ctx.arc(W/2, H*0.56, ringT*Math.max(W,H)*0.65, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  const vignette = Math.min(0.55, elapsed*0.3);
+  if (vignette > 0){
+    const grad = ctx.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.75);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(0,0,0,${vignette.toFixed(3)})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min((now-lastT)/1000, 0.05);
+  lastT = now;
+  pollGamepadButtons();
+  if (now - lastGamepadStatusCheck > 1000){
+    updateGamepadStatus();
+    lastGamepadStatusCheck = now;
+  }
+  if (!started) return;
+
+  fpsFrameCount++;
+  if (now - lastFpsUpdate >= 500){
+    fpsDisplay = Math.round(fpsFrameCount / ((now - lastFpsUpdate)/1000));
+    fpsFrameCount = 0;
+    lastFpsUpdate = now;
+  }
+
+  updateEngineSound();
+
+  if (crashed){
+    updateCamera();
+    const fogColor = skyColorAt(0);
+    drawSky();
+    drawSun();
+    drawClouds(fogColor);
+    drawTerrain(fogColor);
+    drawTrees(fogColor);
+    if (cameraMode === 'third' || cameraMode === 'orbit') drawPlaneModel();
+    drawCrashFlash();
+    drawArtificialHorizon();
+    drawCompassTape();
+    updateHUD();
+
+    const elapsed = (now - crashStartTime) / 1000;
+    if (elapsed > 1.0 && !crashPanelShown) showCrashPanel();
+    return;
+  }
+
+  if (paused) return;
+
+  updateFlight(dt);
+  updateCamera();
+
+  const fogColor = skyColorAt(0);
+  drawSky();
+  drawSun();
+  drawClouds(fogColor);
+  drawTerrain(fogColor);
+  drawTrees(fogColor);
+  if (cameraMode === 'third' || cameraMode === 'orbit') drawPlaneModel();
+  else drawPlaneOverlay();
+  drawArtificialHorizon();
+  drawCompassTape();
+  updateHUD();
+}
+requestAnimationFrame(frame);
+
+function beginGame(e){
+  if (started) return;
+  if (e) e.preventDefault();
+  initAudio();
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('hud').style.display = settings.hideHud ? 'none' : 'block';
+  document.getElementById('crosshair').style.display = 'block';
+  document.getElementById('instructions').style.display = 'block';
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  isTouchDevice = isTouch;
+  if (isTouch){
+    document.getElementById('touchControls').style.display = settings.hideTouchControls ? 'none' : 'block';
+    document.getElementById('touchToggleRow').style.display = 'block';
+  }
+  document.getElementById('camBtn').style.display = 'block';
+  document.getElementById('pauseBtn').style.display = 'block';
+  document.getElementById('gearBtn').style.display = 'block';
+  document.getElementById('advBtn').style.display = 'block';
+  camBtn.textContent = 'View: ' + cameraLabel(cameraMode);
+  setTimeout(() => { document.getElementById('instructions').style.opacity = '0'; }, 6000);
+  started = true;
+  lastT = performance.now();
+}
+const startBtn = document.getElementById('startBtn');
+startBtn.addEventListener('click', beginGame);
+startBtn.addEventListener('touchend', beginGame, {passive:false});
+startBtn.addEventListener('touchstart', function(e){ e.preventDefault(); }, {passive:false});
+
+const camBtn = document.getElementById('camBtn');
+function toggleCamera(e){
+  if (e) e.preventDefault();
+  cycleCameraMode();
+}
+camBtn.addEventListener('click', toggleCamera);
+camBtn.addEventListener('touchend', toggleCamera, {passive:false});
+
+const gearBtn = document.getElementById('gearBtn');
+function gearBtnHandler(e){ if(e) e.preventDefault(); toggleGear(); }
+gearBtn.addEventListener('click', gearBtnHandler);
+gearBtn.addEventListener('touchend', gearBtnHandler, {passive:false});
+
+// ---------- pause / settings ----------
+const settingsOverlay = document.getElementById('settingsOverlay');
+const pauseBtn = document.getElementById('pauseBtn');
+const cellSizeSlider = document.getElementById('cellSizeSlider');
+const radiusSlider = document.getElementById('radiusSlider');
+const cellSizeVal = document.getElementById('cellSizeVal');
+const radiusVal = document.getElementById('radiusVal');
+const fovSlider = document.getElementById('fovSlider');
+const fovVal = document.getElementById('fovVal');
+const hideTouchToggle = document.getElementById('hideTouchToggle');
+const hideHudToggle = document.getElementById('hideHudToggle');
+const volumeSlider = document.getElementById('volumeSlider');
+const volumeVal = document.getElementById('volumeVal');
+const muteToggleBtn = document.getElementById('muteToggleBtn');
+const setFirstBtn = document.getElementById('setFirstBtn');
+const setThirdBtn = document.getElementById('setThirdBtn');
+const setOrbitBtn = document.getElementById('setOrbitBtn');
+
+function syncSettingsPanel(){
+  cellSizeSlider.value = settings.cellSize;
+  cellSizeVal.textContent = settings.cellSize;
+  radiusSlider.value = settings.radiusCells;
+  radiusVal.textContent = settings.radiusCells;
+  fovSlider.value = settings.fovDeg;
+  fovVal.textContent = settings.fovDeg;
+  hideTouchToggle.checked = settings.hideTouchControls;
+  hideHudToggle.checked = settings.hideHud;
+  volumeSlider.value = Math.round(settings.volume*100);
+  volumeVal.textContent = Math.round(settings.volume*100);
+  muteToggleBtn.classList.toggle('active', settings.muted);
+  muteToggleBtn.textContent = settings.muted ? 'Unmute' : 'Mute';
+  setFirstBtn.classList.toggle('active', cameraMode === 'first');
+  setThirdBtn.classList.toggle('active', cameraMode === 'third');
+  setOrbitBtn.classList.toggle('active', cameraMode === 'orbit');
+}
+
+// ---------- controls tab (keybinding UI) ----------
+const tabGeneralBtn = document.getElementById('tabGeneralBtn');
+const tabControlsBtn = document.getElementById('tabControlsBtn');
+const generalTabContent = document.getElementById('generalTabContent');
+const controlsTabContent = document.getElementById('controlsTabContent');
+const bindRowsContainer = document.getElementById('bindRowsContainer');
+const resetBindsBtn = document.getElementById('resetBindsBtn');
+
+function switchSettingsTab(tab){
+  const isGeneral = tab === 'general';
+  generalTabContent.style.display = isGeneral ? 'block' : 'none';
+  controlsTabContent.style.display = isGeneral ? 'none' : 'block';
+  tabGeneralBtn.classList.toggle('active', isGeneral);
+  tabControlsBtn.classList.toggle('active', !isGeneral);
+  awaitingBindFor = null;
+  if (!isGeneral) renderControlsTab();
+}
+tabGeneralBtn.addEventListener('click', function(e){ e.preventDefault(); switchSettingsTab('general'); });
+tabControlsBtn.addEventListener('click', function(e){ e.preventDefault(); switchSettingsTab('controls'); });
+
+function renderControlsTab(){
+  bindRowsContainer.innerHTML = '';
+  for (const action of ACTION_LABELS){
+    const row = document.createElement('div');
+    row.className = 'bindRow';
+
+    const label = document.createElement('span');
+    label.className = 'bindLabel';
+    label.textContent = action.label;
+
+    const btn = document.createElement('button');
+    btn.className = 'bindKeyBtn';
+    const isListening = awaitingBindFor === action.id;
+    btn.textContent = isListening ? 'Press a key…' : keyLabel(keyBindings[action.id]);
+    if (isListening) btn.classList.add('listening');
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      awaitingBindFor = (awaitingBindFor === action.id) ? null : action.id;
+      renderControlsTab();
+    });
+
+    row.appendChild(label);
+    row.appendChild(btn);
+    bindRowsContainer.appendChild(row);
+  }
+}
+
+resetBindsBtn.addEventListener('click', function(e){
+  e.preventDefault();
+  keyBindings = Object.assign({}, DEFAULT_KEYBINDINGS);
+  awaitingBindFor = null;
+  renderControlsTab();
+  savePersisted();
+});
+resetBindsBtn.addEventListener('touchend', function(e){
+  e.preventDefault();
+  keyBindings = Object.assign({}, DEFAULT_KEYBINDINGS);
+  awaitingBindFor = null;
+  renderControlsTab();
+  savePersisted();
+}, {passive:false});
+
+function togglePause(){
+  if (!started) return;
+  paused = !paused;
+  if (paused){
+    syncSettingsPanel();
+    settingsOverlay.style.display = 'flex';
+    pauseBtn.innerHTML = '&#9654;';
+  } else {
+    settingsOverlay.style.display = 'none';
+    pauseBtn.innerHTML = '&#9208;';
+    lastT = performance.now();
+  }
+}
+function openPause(e){ if(e) e.preventDefault(); if(!paused) togglePause(); }
+function closePause(e){ if(e) e.preventDefault(); if(paused) togglePause(); }
+
+// ---------- advanced controls panel (non-pausing, houses the radio) ----------
+const advancedOverlay = document.getElementById('advancedOverlay');
+const advBtn = document.getElementById('advBtn');
+const advCloseBtn = document.getElementById('advCloseBtn');
+const radioOffBtn = document.getElementById('radioOffBtn');
+const radioChillBtn = document.getElementById('radioChillBtn');
+const radioJazzyBtn = document.getElementById('radioJazzyBtn');
+const radioTrapBtn = document.getElementById('radioTrapBtn');
+const radioVolSlider = document.getElementById('radioVolSlider');
+const radioVolVal = document.getElementById('radioVolVal');
+let advancedPanelOpen = false;
+
+function syncAdvancedPanel(){
+  radioOffBtn.classList.toggle('active', settings.radioStation === 'off');
+  radioChillBtn.classList.toggle('active', settings.radioStation === 'chill');
+  radioJazzyBtn.classList.toggle('active', settings.radioStation === 'jazzy');
+  radioTrapBtn.classList.toggle('active', settings.radioStation === 'trap');
+  radioVolSlider.value = Math.round(settings.radioVolume*100);
+  radioVolVal.textContent = Math.round(settings.radioVolume*100);
+}
+
+function toggleAdvancedPanel(){
+  if (!started) return;
+  advancedPanelOpen = !advancedPanelOpen;
+  if (advancedPanelOpen){
+    initAudio(); // in case radio is picked before any other sound has triggered init
+    syncAdvancedPanel();
+    advancedOverlay.style.display = 'block';
+  } else {
+    advancedOverlay.style.display = 'none';
+  }
+}
+function closeAdvancedPanel(e){ if (e) e.preventDefault(); if (advancedPanelOpen) toggleAdvancedPanel(); }
+
+advBtn.addEventListener('click', function(e){ e.preventDefault(); toggleAdvancedPanel(); });
+advBtn.addEventListener('touchend', function(e){ e.preventDefault(); toggleAdvancedPanel(); }, {passive:false});
+advCloseBtn.addEventListener('click', closeAdvancedPanel);
+advCloseBtn.addEventListener('touchend', closeAdvancedPanel, {passive:false});
+
+radioOffBtn.addEventListener('click', function(e){ e.preventDefault(); initAudio(); setRadioStation('off'); });
+radioChillBtn.addEventListener('click', function(e){ e.preventDefault(); initAudio(); setRadioStation('chill'); });
+radioJazzyBtn.addEventListener('click', function(e){ e.preventDefault(); initAudio(); setRadioStation('jazzy'); });
+radioTrapBtn.addEventListener('click', function(e){ e.preventDefault(); initAudio(); setRadioStation('trap'); });
+
+radioVolSlider.addEventListener('input', function(){
+  settings.radioVolume = parseInt(radioVolSlider.value, 10)/100;
+  radioVolVal.textContent = radioVolSlider.value;
+  setRadioVolume();
+});
+radioVolSlider.addEventListener('change', savePersisted);
+
+pauseBtn.addEventListener('click', function(e){ e.preventDefault(); togglePause(); });
+pauseBtn.addEventListener('touchend', function(e){ e.preventDefault(); togglePause(); }, {passive:false});
+
+document.getElementById('resumeBtn').addEventListener('click', closePause);
+document.getElementById('resumeBtn').addEventListener('touchend', closePause, {passive:false});
+
+document.getElementById('resetFromMenuBtn').addEventListener('click', function(e){
+  e.preventDefault(); resetPlane(); closePause();
+});
+document.getElementById('resetFromMenuBtn').addEventListener('touchend', function(e){
+  e.preventDefault(); resetPlane(); closePause();
+}, {passive:false});
+
+// ---------- crash panel ----------
+const crashOverlay = document.getElementById('crashOverlay');
+const crashReasonText = document.getElementById('crashReasonText');
+const crashSpeedVal = document.getElementById('crashSpeedVal');
+const restartCrashBtn = document.getElementById('restartCrashBtn');
+
+function showCrashPanel(){
+  crashReasonText.textContent = crashReason || 'You crashed.';
+  crashSpeedVal.textContent = Math.round(crashImpactSpeed*3.2);
+  crashOverlay.style.display = 'flex';
+  crashPanelShown = true;
+}
+restartCrashBtn.addEventListener('click', restartAfterCrash);
+restartCrashBtn.addEventListener('touchend', restartAfterCrash, {passive:false});
+
+// ---------- dev / cheat console ----------
+const cheatInput = document.getElementById('cheatInput');
+const cheatRunBtn = document.getElementById('cheatRunBtn');
+const cheatLog = document.getElementById('cheatLog');
+const cheatHistory = [];
+
+function logCheat(msg){
+  cheatHistory.push(msg);
+  while (cheatHistory.length > 5) cheatHistory.shift();
+  cheatLog.textContent = cheatHistory.join('\n');
+}
+
+function runCheat(raw){
+  const trimmed = raw.trim();
+  if (!trimmed) return;
+  const parts = trimmed.toLowerCase().split(/\s+/);
+  const cmd = parts[0];
+  const arg = parts[1];
+  let msg;
+
+  switch (cmd){
+    case 'godmode':
+      settings.godMode = !settings.godMode;
+      msg = 'God mode ' + (settings.godMode ? 'ON — crashes disabled' : 'OFF');
+      break;
+    case 'noclip':
+      settings.noClip = !settings.noClip;
+      msg = 'No-clip ' + (settings.noClip ? 'ON — flying through terrain' : 'OFF');
+      break;
+    case 'turbo':
+      settings.turbo = !settings.turbo;
+      msg = 'Turbo ' + (settings.turbo ? 'ON — 3x max speed' : 'OFF');
+      break;
+    case 'night':
+      settings.night = !settings.night;
+      msg = 'Night mode ' + (settings.night ? 'ON' : 'OFF');
+      break;
+    case 'wireframe':
+      settings.wireframe = !settings.wireframe;
+      msg = 'Wireframe terrain ' + (settings.wireframe ? 'ON' : 'OFF');
+      break;
+    case 'trees': {
+      const n = Math.max(0, Math.min(6000, parseInt(arg,10)));
+      if (isNaN(n)){ msg = 'Usage: trees <count>, e.g. trees 3000'; break; }
+      generateTrees(n, Math.max(n*3, 3600));
+      msg = 'Regenerated terrain with ~' + n + ' trees';
+      break;
+    }
+    case 'fov': {
+      const n = Math.max(20, Math.min(170, parseInt(arg,10)));
+      if (isNaN(n)){ msg = 'Usage: fov <degrees 20-170>'; break; }
+      settings.fovDeg = n;
+      updateFocal();
+      syncSettingsPanel();
+      msg = 'FOV set to ' + n + '°';
+      break;
+    }
+    case 'speed': {
+      const n = parseFloat(arg);
+      if (isNaN(n) || n < 0){ msg = 'Usage: speed <number>'; break; }
+      velocity = scl(forward, n);
+      speed = n;
+      msg = 'Speed set to ' + n;
+      break;
+    }
+    case 'alt': {
+      const n = parseFloat(arg);
+      if (isNaN(n)){ msg = 'Usage: alt <number>'; break; }
+      pos.y = n;
+      velocity.y = 0;
+      msg = 'Altitude set to ' + n;
+      break;
+    }
+    case 'reset':
+      settings.godMode = false; settings.noClip = false; settings.turbo = false;
+      settings.night = false; settings.wireframe = false;
+      generateTrees();
+      resetPlane();
+      msg = 'All cheats cleared, plane reset';
+      break;
+    case 'help':
+      msg = 'godmode · noclip · turbo · night · wireframe · trees <n> · fov <deg> · speed <n> · alt <n> · reset';
+      break;
+    default:
+      msg = 'Unknown code: "' + trimmed + '" (try help)';
+  }
+  logCheat('> ' + trimmed + '\n' + msg);
+}
+
+function submitCheat(e){
+  if (e) e.preventDefault();
+  runCheat(cheatInput.value);
+  cheatInput.value = '';
+  cheatInput.focus();
+}
+cheatRunBtn.addEventListener('click', submitCheat);
+cheatRunBtn.addEventListener('touchend', submitCheat, {passive:false});
+cheatInput.addEventListener('keydown', function(e){
+  e.stopPropagation(); // don't let W/A/S/D etc reach flight controls while typing
+  if (e.code === 'Enter') submitCheat(e);
+});
+cheatInput.addEventListener('keyup', function(e){ e.stopPropagation(); });
+
+cellSizeSlider.addEventListener('input', function(){
+  settings.cellSize = parseInt(cellSizeSlider.value, 10);
+  cellSizeVal.textContent = settings.cellSize;
+});
+cellSizeSlider.addEventListener('change', savePersisted);
+radiusSlider.addEventListener('input', function(){
+  settings.radiusCells = parseInt(radiusSlider.value, 10);
+  radiusVal.textContent = settings.radiusCells;
+});
+radiusSlider.addEventListener('change', savePersisted);
+fovSlider.addEventListener('input', function(){
+  settings.fovDeg = parseInt(fovSlider.value, 10);
+  fovVal.textContent = settings.fovDeg;
+  updateFocal();
+});
+fovSlider.addEventListener('change', savePersisted);
+hideTouchToggle.addEventListener('change', function(){
+  settings.hideTouchControls = hideTouchToggle.checked;
+  if (isTouchDevice){
+    document.getElementById('touchControls').style.display = settings.hideTouchControls ? 'none' : 'block';
+  }
+  savePersisted();
+});
+hideHudToggle.addEventListener('change', function(){
+  settings.hideHud = hideHudToggle.checked;
+  document.getElementById('hud').style.display = settings.hideHud ? 'none' : 'block';
+  savePersisted();
+});
+volumeSlider.addEventListener('input', function(){
+  settings.volume = parseInt(volumeSlider.value, 10)/100;
+  volumeVal.textContent = volumeSlider.value;
+  if (settings.volume > 0) settings.muted = false;
+  syncSettingsPanel();
+  setMasterVolume();
+});
+volumeSlider.addEventListener('change', savePersisted);
+function toggleMute(e){
+  if (e) e.preventDefault();
+  settings.muted = !settings.muted;
+  syncSettingsPanel();
+  setMasterVolume();
+  savePersisted();
+}
+muteToggleBtn.addEventListener('click', toggleMute);
+muteToggleBtn.addEventListener('touchend', toggleMute, {passive:false});
+setFirstBtn.addEventListener('click', function(e){ e.preventDefault(); setCameraMode('first'); });
+setThirdBtn.addEventListener('click', function(e){ e.preventDefault(); setCameraMode('third'); });
+setOrbitBtn.addEventListener('click', function(e){ e.preventDefault(); setCameraMode('orbit'); });
+
+// ---------- orbit camera input: drag to look, pinch/scroll to zoom ----------
+const orbitPointers = new Map();
+let lastPinchDist = null;
+
+function pointerDist(a, b){
+  const dx = a.x-b.x, dy = a.y-b.y;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+canvas.addEventListener('pointerdown', function(e){
+  if (cameraMode !== 'orbit' || paused || !started) return;
+  orbitPointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  lastPinchDist = null;
+  try { canvas.setPointerCapture(e.pointerId); } catch(err){}
+});
+
+canvas.addEventListener('pointermove', function(e){
+  if (!orbitPointers.has(e.pointerId)) return;
+  const prev = orbitPointers.get(e.pointerId);
+  const curr = {x:e.clientX, y:e.clientY};
+  orbitPointers.set(e.pointerId, curr);
+  if (cameraMode !== 'orbit') return;
+
+  if (orbitPointers.size === 1){
+    const dx = curr.x - prev.x, dy = curr.y - prev.y;
+    orbitYaw -= dx * 0.006;
+    orbitPitch = Math.max(-1.4, Math.min(1.4, orbitPitch + dy * 0.006));
+  } else if (orbitPointers.size === 2){
+    const pts = Array.from(orbitPointers.values());
+    const dist = pointerDist(pts[0], pts[1]);
+    if (lastPinchDist !== null){
+      orbitDist = Math.max(8, Math.min(160, orbitDist - (dist - lastPinchDist) * 0.08));
+    }
+    lastPinchDist = dist;
+  }
+});
+
+function orbitPointerEnd(e){
+  orbitPointers.delete(e.pointerId);
+  if (orbitPointers.size < 2) lastPinchDist = null;
+}
+canvas.addEventListener('pointerup', orbitPointerEnd);
+canvas.addEventListener('pointercancel', orbitPointerEnd);
+
+canvas.addEventListener('wheel', function(e){
+  if (cameraMode !== 'orbit') return;
+  e.preventDefault();
+  orbitDist = Math.max(8, Math.min(160, orbitDist + e.deltaY * 0.05));
+}, {passive:false});
+
+// ---------- draggable throttle bar (touch + mouse) ----------
+const throttleBarContainer = document.getElementById('bar-container');
+let throttleDragging = false;
+
+function setThrottleFromClientX(clientX){
+  const rect = throttleBarContainer.getBoundingClientRect();
+  let t = (clientX - rect.left) / rect.width;
+  throttle = Math.max(0, Math.min(1, t));
+}
+
+throttleBarContainer.addEventListener('pointerdown', function(e){
+  if (!started || paused) return;
+  throttleDragging = true;
+  throttleBarContainer.classList.add('dragging');
+  setThrottleFromClientX(e.clientX);
+  try { throttleBarContainer.setPointerCapture(e.pointerId); } catch(err){}
+  e.preventDefault();
+});
+throttleBarContainer.addEventListener('pointermove', function(e){
+  if (!throttleDragging) return;
+  setThrottleFromClientX(e.clientX);
+});
+function endThrottleDrag(){
+  throttleDragging = false;
+  throttleBarContainer.classList.remove('dragging');
+}
+throttleBarContainer.addEventListener('pointerup', endThrottleDrag);
+throttleBarContainer.addEventListener('pointercancel', endThrottleDrag);
+
+})();
+</script>
+</body>
+</html>

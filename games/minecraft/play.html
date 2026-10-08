@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#000" />
+<title>Eaglercraft — loading…</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  html, body {
+    height: 100%; margin: 0;
+    background: #050709;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+  }
+  .stage { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  .stage__bar {
+    height: 52px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px;
+    background: rgba(10, 13, 19, 0.92);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    font-size: 14px;
+    z-index: 2;
+  }
+  .stage__bar a, .stage__bar button {
+    font: 500 13px/1 'Inter', system-ui, sans-serif;
+    color: #cbd5e1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+    min-height: 36px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .stage__bar a:hover, .stage__bar button:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border-color: rgba(255,255,255,0.14);
+  }
+  .stage__bar .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f1f5f9;
+    flex: 1;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stage__frame { flex: 1; position: relative; background: #000; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+  .loader {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 30%, rgba(34,197,94,.10), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 50% 100%, rgba(56,189,248,.06), transparent 70%),
+      #050709;
+    transition: opacity .35s ease;
+  }
+  .loader.is-hidden { opacity: 0; pointer-events: none; }
+  .loader__logo {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(180deg, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .loader__sub {
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+  .loader__bar {
+    width: min(420px, 80vw); height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .loader__bar::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, #22c55e, transparent);
+    animation: ldr 1.4s ease-in-out infinite;
+  }
+  @keyframes ldr { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  .loader__hint {
+    font-size: 13px;
+    color: #64748b;
+    max-width: 480px;
+    text-align: center;
+    line-height: 1.55;
+  }
+  .loader__hint a { color: #38bdf8; }
+  .loader__hint a:hover { color: #7dd3fc; }
+
+  @media (max-width: 600px) {
+    .stage__bar { gap: 6px; padding: 0 10px; height: 48px; }
+    .stage__bar a, .stage__bar button { padding: 6px 10px; font-size: 12px; }
+    .stage__bar .title { font-size: 12px; }
+    .loader__logo { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage__bar">
+    <a href="index.html" title="Back to launcher">◀ Launcher</a>
+    <span class="title" id="title">Eaglercraft</span>
+    <button id="reload" title="Reload the game">⟳ Reload</button>
+    <button id="fullscreen" title="Toggle fullscreen">⛶ Fullscreen</button>
+    <button id="newtab" title="Open in a new tab">↗ New tab</button>
+  </div>
+  <div class="stage__frame" id="frame">
+    <div class="loader" id="loader">
+      <div class="loader__logo" id="loaderLogo">LOADING</div>
+      <div class="loader__sub" id="loaderSub">Fetching client…</div>
+      <div class="loader__bar"></div>
+      <p class="loader__hint">First load can take 20–60s — the client is a single ~25&nbsp;MB file. If it stalls, try <a href="#" id="loaderNewTab">opening it in a new tab</a> or pick a different mirror in <a href="index.html#settings">launcher settings</a>.</p>
+    </div>
+    <iframe id="game" allow="fullscreen; gamepad; clipboard-read; clipboard-write; autoplay"></iframe>
+  </div>
+</div>
+<script src="js/storage.js"></script>
+<script src="js/clients.js"></script>
+<script src="js/play.js"></script>
+</body>
+</html>

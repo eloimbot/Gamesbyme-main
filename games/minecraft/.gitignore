@@ -1,0 +1,19 @@
+# test artifacts (top-level only — docs/screenshots/ is README content and stays tracked)
+/screenshots/
+/tmp/
+
+# wrangler local state
+.wrangler/
+node_modules/
+
+# editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# logs
+*.log

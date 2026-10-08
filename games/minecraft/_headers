@@ -1,0 +1,38 @@
+# =========================================================
+# Cloudflare Pages headers — caching + security + MIME
+# Syntax: https://developers.cloudflare.com/pages/configuration/headers/
+# =========================================================
+
+# --- Bundled game files (huge, content-addressed by version slug) ---
+# Aggressive immutable cache; Cloudflare also auto-brotlis these.
+/games/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# Force the correct WASM MIME so browsers can stream-compile.
+/games/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/games/*.data
+  Content-Type: application/octet-stream
+  Cache-Control: public, max-age=31536000, immutable
+
+# --- Static assets (CSS / JS) ---
+/css/*
+  Cache-Control: public, max-age=3600
+
+/js/*
+  Cache-Control: public, max-age=3600
+
+# --- HTML (short cache, since launcher updates land here) ---
+/*.html
+  Cache-Control: public, max-age=300, must-revalidate
+
+# --- Everything else (root, /, etc.) ---
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: fullscreen=(self), gamepad=(self), clipboard-read=(self), clipboard-write=(self)
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Cross-Origin-Embedder-Policy: unsafe-none

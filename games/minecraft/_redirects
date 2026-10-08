@@ -1,0 +1,3 @@
+# Cloudflare Pages redirects
+# (Intentionally empty — Pages auto-clean-URLs handle /play and /admin
+# would now collide with the real play.html if redirected.)

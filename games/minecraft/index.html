@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1a1a1a" />
+<title>Eaglercraft Launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%235ba742"/><rect x="0" y="11" width="16" height="5" fill="%23866043"/><rect x="2" y="2" width="3" height="3" fill="%2374cc59"/><rect x="11" y="3" width="3" height="3" fill="%2374cc59"/><rect x="6" y="6" width="4" height="3" fill="%234d9134"/></svg>' />
+</head>
+<body class="app-body">
+
+<div class="app" id="app">
+
+  <aside class="sidebar" aria-label="Primary navigation">
+    <a class="sidebar__brand" href="#play" aria-label="Eaglercraft Launcher home">
+      <span class="brand-block" aria-hidden="true"></span>
+      <span class="brand-text">
+        <span class="brand-text__name">Eaglercraft</span>
+        <span class="brand-text__sub">Launcher</span>
+      </span>
+    </a>
+
+    <nav class="sidebar__nav" id="nav">
+      <a class="nav-item" data-view="play" href="#play">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><path d="M3 2l11 6-11 6z" /></svg>
+        <span>Play</span>
+      </a>
+      <a class="nav-item" data-view="versions" href="#versions">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/></svg>
+        <span>Versions</span>
+      </a>
+      <a class="nav-item" data-view="servers" href="#servers">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><rect x="2" y="3" width="12" height="3"/><rect x="2" y="10" width="12" height="3"/><circle cx="5" cy="4.5" r="0.7" fill="#5ba742"/><circle cx="5" cy="11.5" r="0.7" fill="#5ba742"/></svg>
+        <span>Servers</span>
+      </a>
+      <a class="nav-item" data-view="skins" href="#skins">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><rect x="5" y="2" width="6" height="5"/><rect x="3" y="8" width="10" height="6"/></svg>
+        <span>Skins</span>
+      </a>
+      <a class="nav-item" data-view="news" href="#news">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><rect x="2" y="3" width="12" height="10"/><rect x="3.5" y="5" width="9" height="1" fill="#1a1a1a"/><rect x="3.5" y="7" width="9" height="1" fill="#1a1a1a"/><rect x="3.5" y="9" width="6" height="1" fill="#1a1a1a"/></svg>
+        <span>News</span>
+      </a>
+      <a class="nav-item" data-view="settings" href="#settings">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><path d="M8 5a3 3 0 100 6 3 3 0 000-6zm0 2a1 1 0 110 2 1 1 0 010-2z"/><path d="M7 1h2v2H7zm0 12h2v2H7zM1 7h2v2H1zm12 0h2v2h-2z"/></svg>
+        <span>Settings</span>
+      </a>
+      <a class="nav-item" data-view="about" href="#about">
+        <svg viewBox="0 0 16 16" class="nav-item__icon" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="2" height="5"/><rect x="7" y="3" width="2" height="2"/></svg>
+        <span>About</span>
+      </a>
+    </nav>
+
+    <div class="sidebar__foot">
+      <div class="user-chip">
+        <div class="user-chip__avatar" id="userAvatar" aria-hidden="true"></div>
+        <div class="user-chip__meta">
+          <span class="user-chip__label">Playing as</span>
+          <span class="user-chip__name" id="userName">Steve</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============ PLAY ============ -->
+    <section class="view view--play is-active" id="view-play" data-view="play">
+      <div class="hero">
+        <div class="hero__inner">
+          <h1 class="hero__title">Play Minecraft in your browser.</h1>
+          <p class="hero__splash" id="splash">Pick a client, pick a server, hit play. No installer, no Java, no fuss — your worlds save locally.</p>
+        </div>
+      </div>
+
+      <div class="play-deck">
+        <div class="play-deck__left">
+          <label class="version-select" for="versionSelect">
+            <span class="version-select__label">Selected version</span>
+            <div class="version-select__wrap">
+              <select id="versionSelect" class="mc-select"></select>
+              <span class="version-select__caret" aria-hidden="true">▾</span>
+            </div>
+            <span class="version-select__hint" id="versionHint">—</span>
+          </label>
+
+          <button class="mc-button mc-button--primary mc-button--xl" id="playBtn">
+            <span class="mc-button__label">PLAY</span>
+          </button>
+
+          <div class="play-deck__options">
+            <label class="mc-toggle">
+              <input type="checkbox" id="optFullscreen" />
+              <span class="mc-toggle__pip"></span>
+              <span>Auto-fullscreen</span>
+            </label>
+            <label class="mc-toggle">
+              <input type="checkbox" id="optNewTab" />
+              <span class="mc-toggle__pip"></span>
+              <span>Open in new tab</span>
+            </label>
+          </div>
+        </div>
+
+        <aside class="play-deck__right" aria-label="Quick info">
+          <div class="mc-panel mc-panel--stone tip-card">
+            <h3>Quick tip</h3>
+            <p id="quickTip">Press <kbd>T</kbd> in-game to open chat. Use <kbd>/</kbd> for commands.</p>
+          </div>
+          <div class="mc-panel mc-panel--stone server-quick">
+            <h3>Recent server</h3>
+            <p id="recentServer" class="muted">No server joined yet.</p>
+            <button class="mc-button" id="goServers">Browse servers</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ VERSIONS ============ -->
+    <section class="view" id="view-versions" data-view="versions">
+      <header class="view__head">
+        <h2>Versions</h2>
+        <p class="muted">Pick a client to play. Each is a different community-maintained build.</p>
+      </header>
+      <div class="version-grid" id="versionGrid"></div>
+    </section>
+
+    <!-- ============ SERVERS ============ -->
+    <section class="view" id="view-servers" data-view="servers">
+      <header class="view__head">
+        <h2>Server browser</h2>
+        <p class="muted">Public Eaglercraft (<code>wss://</code>) servers. Click <strong>Join</strong> to launch the selected client straight into the server.</p>
+      </header>
+
+      <form class="server-add" id="serverAddForm">
+        <input type="text" class="mc-input" id="serverAddName" placeholder="Server name" required />
+        <input type="text" class="mc-input" id="serverAddUrl" placeholder="wss://address.example" required />
+        <button class="mc-button mc-button--primary" type="submit">Add server</button>
+      </form>
+
+      <ul class="server-list" id="serverList"></ul>
+    </section>
+
+    <!-- ============ SKINS ============ -->
+    <section class="view" id="view-skins" data-view="skins">
+      <header class="view__head">
+        <h2>Skin preview</h2>
+        <p class="muted">Eaglercraft handles skins inside the game (Multiplayer → Skin Customizer). Use this page to remember which look you're going for.</p>
+      </header>
+      <div class="skins-deck">
+        <div class="mc-panel mc-panel--stone skin-preview">
+          <div class="skin-figure" id="skinFigure">
+            <div class="skin-figure__head"></div>
+            <div class="skin-figure__torso"></div>
+            <div class="skin-figure__armL"></div>
+            <div class="skin-figure__armR"></div>
+            <div class="skin-figure__legL"></div>
+            <div class="skin-figure__legR"></div>
+          </div>
+        </div>
+        <div class="mc-panel mc-panel--stone skin-controls">
+          <label class="field">
+            <span>Skin tint</span>
+            <input type="color" id="skinColor" value="#7c4f2a" />
+          </label>
+          <label class="field">
+            <span>Cape tint</span>
+            <input type="color" id="capeColor" value="#aa1f1f" />
+          </label>
+          <label class="field">
+            <span>Note to self</span>
+            <textarea class="mc-input" id="skinNote" rows="3" placeholder="e.g. swap to the Notch look this weekend"></textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ NEWS ============ -->
+    <section class="view" id="view-news" data-view="news">
+      <header class="view__head">
+        <h2>What's new</h2>
+        <p class="muted">Curated changes across the Eaglercraft ecosystem.</p>
+      </header>
+      <ol class="news-feed" id="newsFeed"></ol>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="view" id="view-settings" data-view="settings">
+      <header class="view__head">
+        <h2>Settings</h2>
+        <p class="muted">Stored locally in your browser. Nothing is sent anywhere.</p>
+      </header>
+
+      <div class="settings-grid">
+        <div class="mc-panel mc-panel--stone">
+          <h3>Profile</h3>
+          <label class="field">
+            <span>Username</span>
+            <input type="text" class="mc-input" id="setUsername" maxlength="16" placeholder="Steve" />
+            <small class="muted">3–16 characters. Used as default in-game name.</small>
+          </label>
+          <label class="field">
+            <span>Default version</span>
+            <select class="mc-select" id="setDefaultVersion"></select>
+          </label>
+        </div>
+
+        <div class="mc-panel mc-panel--stone">
+          <h3>Launching</h3>
+          <label class="mc-toggle">
+            <input type="checkbox" id="setAutoFullscreen" />
+            <span class="mc-toggle__pip"></span>
+            <span>Auto-fullscreen on play</span>
+          </label>
+          <label class="mc-toggle">
+            <input type="checkbox" id="setNewTab" />
+            <span class="mc-toggle__pip"></span>
+            <span>Open in a new tab instead of embedded</span>
+          </label>
+          <label class="mc-toggle">
+            <input type="checkbox" id="setTabCloak" />
+            <span class="mc-toggle__pip"></span>
+            <span>Cloak browser tab (about:blank-style title)</span>
+          </label>
+        </div>
+
+        <div class="mc-panel mc-panel--stone">
+          <h3>Experimental versions</h3>
+          <p class="muted">Online-only builds that load from <code>eaglercraft.com</code>. They probably won't embed because of the host's frame-blocking headers — you'll need "Open in new tab" to actually play them.</p>
+          <label class="mc-toggle">
+            <input type="checkbox" id="setShowExperimental" />
+            <span class="mc-toggle__pip"></span>
+            <span>Show experimental online versions in catalog</span>
+          </label>
+        </div>
+
+        <div class="mc-panel mc-panel--stone mc-panel--full">
+          <h3>Mirror URLs</h3>
+          <p class="muted">Override the game URL per version. Useful when a CDN goes down or you self-host. Leave blank to use the default.</p>
+          <div id="mirrorList" class="mirror-list"></div>
+        </div>
+
+        <div class="mc-panel mc-panel--stone mc-panel--full">
+          <h3>Danger zone</h3>
+          <button class="mc-button mc-button--danger" id="resetBtn">Reset all settings</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="view" id="view-about" data-view="about">
+      <header class="view__head">
+        <h2>About</h2>
+      </header>
+      <div class="about-grid">
+        <div class="mc-panel mc-panel--stone">
+          <h3>What is Eaglercraft?</h3>
+          <p>Eaglercraft is a community port of Minecraft to plain JavaScript / WebAssembly so it runs in any modern browser — no Java, no installer.</p>
+          <p>This launcher is a front-end. It catalogs the public client builds and launches them in an iframe (or a new tab) so you can switch versions and servers without bookmarking ten different URLs.</p>
+        </div>
+        <div class="mc-panel mc-panel--stone">
+          <h3>Credits</h3>
+          <ul class="credit-list">
+            <li><strong>lax1dude</strong> — original Eaglercraft 1.5.2 &amp; EaglercraftX 1.8.8</li>
+            <li><strong>PeytonPlayz585</strong> — Eaglercraft 1.12.2</li>
+            <li><strong>The Eaglercraft community</strong> — mirrors, plugins, server lists</li>
+            <li><strong>Mojang / Microsoft</strong> — the original Minecraft (not affiliated)</li>
+          </ul>
+        </div>
+        <div class="mc-panel mc-panel--stone mc-panel--full">
+          <h3>Legal</h3>
+          <p class="muted">Minecraft is a trademark of Mojang Synergies / Microsoft. This launcher is an unofficial front-end and is not affiliated with, endorsed by, or sponsored by Mojang or Microsoft. All game code is loaded from the third-party URLs configured in <em>Settings → Mirror URLs</em>; this launcher hosts none of it.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/clients.js"></script>
+<script src="js/servers.js"></script>
+<script src="js/splash.js"></script>
+<script src="js/launcher.js"></script>
+</body>
+</html>

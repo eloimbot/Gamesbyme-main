@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rosewood Coffee Co. — 10 Day Shop Sim</title>
+<style>
+  :root{
+    --bg: #15100d;
+    --bg-vignette: #1d1512;
+    --panel: #241a15;
+    --panel-hi: #2f231b;
+    --line: #4a382c;
+    --line-soft: #382a21;
+    --cream: #f3e6d2;
+    --cream-dim: #c7b39c;
+    --copper: #d98c4a;
+    --copper-dim: #a8683a;
+    --copper-glow: rgba(217,140,74,0.35);
+    --gold: #e3b34d;
+    --sage: #8fae6b;
+    --danger: #d1685a;
+    --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    --font-mono: 'Courier New', ui-monospace, SFMono-Regular, monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 20% -10%, var(--bg-vignette), transparent 60%),
+      radial-gradient(ellipse at 100% 100%, #201713, transparent 55%),
+      var(--bg);
+    color: var(--cream);
+    font-family: var(--font-body);
+    padding: 20px;
+  }
+
+  :focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  #app{ max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, var(--panel-hi), var(--panel));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand .name{
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    color: var(--cream);
+  }
+  .brand .tag{
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--copper);
+  }
+
+  .day-track{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .day-track .label{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cream-dim); }
+  .dots{ display:flex; gap:5px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background: var(--line); border: 1px solid var(--line-soft); }
+  .dot.done{ background: var(--sage); border-color: var(--sage); }
+  .dot.current{ background: var(--copper); border-color: var(--gold); box-shadow: 0 0 6px var(--copper-glow); }
+
+  .funds-pill{
+    display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+    padding: 8px 16px;
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    background: rgba(227,179,77,0.08);
+  }
+  .funds-pill .label{ font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color: var(--gold); }
+  .funds-pill .amount{ font-family: var(--font-display); font-size: 22px; color: var(--cream); font-weight:bold; }
+
+  /* ---------- Layout ---------- */
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    min-width: 0; /* allow grid item to shrink instead of overflowing siblings */
+  }
+  .card h2{
+    font-family: var(--font-display);
+    font-size: 17px;
+    margin: 0 0 12px 0;
+    color: var(--copper);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2 .idx{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--cream-dim);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+
+  /* ---------- Resource rows ---------- */
+  .res-row{
+    display:flex;
+    flex-wrap: wrap;
+    align-items:center;
+    gap: 6px 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .res-row:last-child{ border-bottom:none; }
+  .res-name{ font-size:14px; flex: 1 1 100px; min-width:0; }
+  .res-name small{ display:block; color: var(--cream-dim); font-size:11px; }
+  .res-stock{ font-family: var(--font-mono); font-size:13px; color: var(--sage); flex: 0 0 auto; }
+  .res-cost{ font-family: var(--font-mono); font-size:12px; color: var(--cream-dim); flex: 0 0 auto; }
+  .res-cost.hiked{ color: var(--danger); }
+  .res-buy{ display:flex; align-items:center; gap:6px; flex: 0 0 auto; }
+  .qty-input{
+    width: 52px; padding:5px 6px; text-align:center;
+    background: #1c1410; border:1px solid var(--line); color:var(--cream);
+    border-radius:6px; font-family: var(--font-mono); font-size:13px;
+  }
+
+  button{
+    font-family: var(--font-body);
+    cursor:pointer;
+    border:none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight:600;
+    transition: transform .08s ease, filter .15s ease;
+  }
+  button:active{ transform: scale(0.96); }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .btn-buy{ background: linear-gradient(180deg, var(--copper), var(--copper-dim)); color:#1c1410; }
+  .btn-buy:hover:not(:disabled){ filter: brightness(1.1); }
+
+  .btn-primary{
+    background: linear-gradient(180deg, var(--gold), #b98a30);
+    color: #221a10;
+    padding: 12px 22px;
+    font-size: 15px;
+    border-radius: 10px;
+    width:100%;
+  }
+  .btn-primary:hover:not(:disabled){ filter: brightness(1.08); }
+
+  .btn-ghost{
+    background: transparent; border: 1px solid var(--line); color: var(--cream-dim);
+  }
+  .btn-ghost:hover{ border-color: var(--copper); color: var(--cream); }
+
+  /* ---------- Pricing ---------- */
+  .price-row{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    align-items:center;
+    gap:10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .price-row:last-child{ border-bottom:none; }
+  .price-row .p-name{ font-size:14px; }
+  .price-row .p-name small{ display:block; color:var(--cream-dim); font-size:11px; }
+  .price-input-wrap{ display:flex; align-items:center; gap:2px; }
+  .price-input-wrap span{ color: var(--gold); font-family: var(--font-mono); }
+  .price-input{
+    width: 62px; padding:5px 6px; text-align:center;
+    background: #1c1410; border:1px solid var(--line); color:var(--cream);
+    border-radius:6px; font-family: var(--font-mono); font-size:13px;
+  }
+
+  /* ---------- Reputation meter ---------- */
+  .meter{ height:8px; border-radius:5px; background: var(--line-soft); overflow:hidden; margin-top:6px;}
+  .meter > div{ height:100%; background: linear-gradient(90deg, var(--sage), var(--gold)); }
+  .meter-label{ display:flex; justify-content:space-between; font-size:11px; color:var(--cream-dim); margin-top:4px;}
+
+  /* ---------- Upgrades ---------- */
+  .upgrade-row{
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .upgrade-row:last-child{ border-bottom:none; }
+  .upgrade-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .upgrade-name{ font-size:14px; }
+  .upgrade-desc{ font-size:11.5px; color: var(--cream-dim); margin-top:3px; line-height:1.4; }
+  .btn-upgrade{ background: linear-gradient(180deg, var(--sage), #5f7d45); color:#141a10; white-space:nowrap; }
+  .btn-upgrade:hover:not(:disabled){ filter:brightness(1.1); }
+  .btn-owned{ background: transparent; border:1px solid var(--sage); color: var(--sage); cursor:default; }
+
+  /* ---------- Event card ---------- */
+  .event-card{
+    border-left: 3px solid var(--gold);
+    background: rgba(227,179,77,0.06);
+  }
+  .event-card .ev-title{ font-family: var(--font-display); font-style:italic; font-size:15px; color:var(--gold); }
+  .event-card .ev-desc{ font-size:13px; color: var(--cream-dim); margin-top:4px; }
+  .no-event{ font-size:13px; color: var(--cream-dim); font-style:italic; }
+
+  /* ---------- Simulation screen ---------- */
+  .sim-grid{
+    display:grid;
+    grid-template-columns: 0.9fr 1.3fr 0.9fr;
+    gap:16px;
+  }
+  @media (max-width: 900px){ .sim-grid{ grid-template-columns:1fr; } }
+
+  .timer-wrap{ margin-bottom:10px; }
+  .timer-bar{ height:10px; border-radius:6px; background: var(--line-soft); overflow:hidden; }
+  .timer-bar > div{ height:100%; background: linear-gradient(90deg, var(--copper), var(--gold)); width:0%; transition: width .18s linear; }
+  .timer-caption{ display:flex; justify-content:space-between; font-size:11px; color:var(--cream-dim); margin-top:4px; font-family: var(--font-mono); }
+
+  .stat-line{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
+  .stat-line:last-child{ border-bottom:none; }
+  .stat-line .v{ font-family: var(--font-mono); color: var(--gold); }
+
+  /* Receipt ticker */
+  .receipt-wrap{
+    background: repeating-linear-gradient(180deg, #1a130f, #1a130f 2px, #1e1712 2px, #1e1712 4px);
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    height: 360px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  .receipt-wrap::-webkit-scrollbar{ width:6px; }
+  .receipt-wrap::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
+  .receipt-head{ text-align:center; color: var(--cream-dim); border-bottom: 1px dashed var(--line); padding-bottom:8px; margin-bottom:8px; }
+  .receipt-line{ display:flex; justify-content:space-between; gap:8px; opacity:0; animation: fadeIn .25s ease forwards; }
+  .receipt-line.sale{ color: var(--sage); }
+  .receipt-line.miss{ color: var(--danger); }
+  @keyframes fadeIn{ from{ opacity:0; transform: translateY(-3px);} to{opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){
+    .receipt-line{ animation:none; opacity:1; }
+  }
+
+  .speed-btn{ margin-left:auto; }
+  .sim-controls{ display:flex; align-items:center; gap:8px; margin-bottom: 10px; }
+
+  /* ---------- Overlays ---------- */
+  .overlay{
+    position: fixed; inset:0; background: rgba(10,7,5,0.78);
+    display:none; align-items:center; justify-content:center; padding: 20px; z-index:50;
+  }
+  .overlay.active{ display:flex; }
+  .overlay-card{
+    background: var(--panel-hi);
+    border: 1px solid var(--copper-dim);
+    border-radius: 14px;
+    max-width: 480px; width:100%;
+    padding: 26px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .overlay-card h2{
+    font-family: var(--font-display); font-style:italic; font-size:22px; color:var(--gold);
+    margin: 0 0 4px 0; text-align:center;
+  }
+  .overlay-card .sub{ text-align:center; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cream-dim); margin-bottom:16px;}
+
+  .receipt-summary{
+    font-family: var(--font-mono); font-size:13px;
+    border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
+    padding: 12px 0; margin-bottom: 16px;
+  }
+  .receipt-summary .row{ display:flex; justify-content:space-between; padding: 4px 0; }
+  .receipt-summary .row.total{ border-top:1px dashed var(--line); margin-top:6px; padding-top:8px; font-weight:bold; color: var(--gold); }
+  .receipt-summary .row .pos{ color: var(--sage); }
+  .receipt-summary .row .neg{ color: var(--danger); }
+
+  .rank-stamp{
+    text-align:center; margin: 14px 0 18px 0;
+  }
+  .rank-stamp .rank-title{
+    display:inline-block;
+    font-family: var(--font-display); font-style:italic; font-size:24px;
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    border-radius: 8px;
+    padding: 8px 20px;
+    transform: rotate(-2deg);
+  }
+  .rank-stamp .rank-desc{ margin-top:10px; font-size:13px; color: var(--cream-dim); }
+
+  .hidden{ display:none !important; }
+  .row-flex{ display:flex; gap:10px; }
+  .row-flex > *{ flex:1; }
+
+  footer.note{ text-align:center; font-size:11px; color: var(--cream-dim); margin-top: 18px; opacity:.7; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <div class="name">Rosewood Coffee Co.</div>
+      <div class="tag">Shop Management Simulator</div>
+    </div>
+    <div class="day-track">
+      <div class="label" id="day-label">Day 1 of 10</div>
+      <div class="dots" id="day-dots"></div>
+    </div>
+    <div class="funds-pill">
+      <div class="label">Funds</div>
+      <div class="amount" id="funds-amount">$250.00</div>
+    </div>
+  </header>
+
+  <!-- ===================== SHOP PHASE ===================== -->
+  <div class="screen" id="screen-shop">
+    <div class="grid">
+
+      <!-- Inventory -->
+      <div class="card">
+        <h2><span class="idx">01</span> Restock Inventory</h2>
+        <div id="resource-list"></div>
+      </div>
+
+      <!-- Pricing -->
+      <div class="card">
+        <h2><span class="idx">02</span> Set Menu Prices</h2>
+        <div id="price-list"></div>
+        <div style="margin-top:12px;">
+          <div class="meter-label"><span>Shop Reputation</span><span id="rep-value">50</span></div>
+          <div class="meter"><div id="rep-fill" style="width:50%"></div></div>
+        </div>
+      </div>
+
+      <!-- Upgrades -->
+      <div class="card">
+        <h2><span class="idx">03</span> Shop Upgrades</h2>
+        <div id="upgrades-list"></div>
+      </div>
+
+      <!-- Forecast + Start -->
+      <div class="card">
+        <h2><span class="idx">04</span> Today's Forecast</h2>
+        <div id="event-slot"></div>
+        <div style="margin-top:16px; font-size:12px; color:var(--cream-dim); line-height:1.6;">
+          Today's spend so far: <b id="today-spent" style="color:var(--gold)">$0.00</b><br>
+          Beans, milk &amp; cups you don't use today carry over to tomorrow — but idle cash earns nothing.
+        </div>
+        <div style="margin-top:18px;">
+          <button class="btn-primary" id="btn-start-day">Start Day ☕</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== SIMULATION PHASE ===================== -->
+  <div class="screen" id="screen-sim">
+    <div class="timer-wrap card">
+      <div class="sim-controls">
+        <strong style="font-family:var(--font-display); font-style:italic; color:var(--copper);">Workday in progress…</strong>
+        <button class="btn-ghost speed-btn" id="btn-speed">Speed: 1x</button>
+      </div>
+      <div class="timer-bar"><div id="timer-fill"></div></div>
+      <div class="timer-caption"><span id="timer-elapsed">0.0s</span><span id="timer-total">30.0s</span></div>
+    </div>
+
+    <div class="sim-grid">
+      <div class="card">
+        <h2><span class="idx">•</span> Live Stats</h2>
+        <div class="stat-line"><span>Customers served</span><span class="v" id="stat-served">0</span></div>
+        <div class="stat-line"><span>Walked away</span><span class="v" id="stat-missed">0</span></div>
+        <div class="stat-line"><span>Income today</span><span class="v" id="stat-income">$0.00</span></div>
+        <div class="stat-line"><span>Satisfaction</span><span class="v" id="stat-satisfaction">100%</span></div>
+        <h2 style="margin-top:16px;"><span class="idx">•</span> Stock Remaining</h2>
+        <div id="sim-stock"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="idx">•</span> Register Tape</h2>
+        <div class="receipt-wrap" id="receipt-log">
+          <div class="receipt-head">— ROSEWOOD COFFEE CO. —<br>live sales feed</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="idx">•</span> Today's Conditions</h2>
+        <div id="sim-event-slot"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== END OF DAY OVERLAY ===================== -->
+<div class="overlay" id="overlay-summary">
+  <div class="overlay-card">
+    <h2 id="summary-title">Day 1 — Closing Time</h2>
+    <div class="sub">Daily Receipt</div>
+    <div class="receipt-summary" id="summary-body"></div>
+    <button class="btn-primary" id="btn-next-day">Open Tomorrow →</button>
+  </div>
+</div>
+
+<!-- ===================== GAME OVER OVERLAY ===================== -->
+<div class="overlay" id="overlay-gameover">
+  <div class="overlay-card">
+    <h2>Final Business Report</h2>
+    <div class="sub">10 Days of Trading Complete</div>
+    <div class="receipt-summary" id="gameover-body"></div>
+    <div class="rank-stamp">
+      <div class="rank-title" id="rank-title">Rookie</div>
+      <div class="rank-desc" id="rank-desc"></div>
+    </div>
+    <button class="btn-primary" id="btn-restart">Open a New Shop</button>
+  </div>
+</div>
+
+<footer class="note">All figures are simulated. No actual coffee was harmed.</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------- Config ----------------
+  const TOTAL_DAYS = 10;
+  const START_FUNDS = 250;
+  const SIM_MS = 30000;
+  const TICK_MS = 200;
+  const PRICE_CAP = 20; // no drink is worth more than this, Elon or not
+  const QTY_CAP = 500;
+
+  const RESOURCES = {
+    beans: { label:'Coffee Beans', unit:'scoops', baseCost:0.60 },
+    milk:  { label:'Milk',         unit:'cartons', baseCost:0.35 },
+    cups:  { label:'Cups',         unit:'cups',    baseCost:0.12 }
+  };
+
+  const PRODUCTS = {
+    hot:   { label:'Hot Coffee',  recipe:{beans:1, cups:1},        basePrice:3.5, share:0.40 },
+    latte: { label:'Latte',       recipe:{beans:1, milk:1, cups:1},basePrice:4.5, share:0.32 },
+    iced:  { label:'Iced Coffee', recipe:{beans:1, milk:1, cups:1},basePrice:4.2, share:0.28 }
+  };
+
+  const UPGRADES = {
+    espresso: {
+      name: 'Espresso Machine Upgrade',
+      desc: 'Richer crema means customers judge your prices more generously (+18% price tolerance).',
+      cost: 180
+    },
+    bulk: {
+      name: 'Bulk Supplier Contract',
+      desc: 'Locked-in wholesale rates cut every ingredient cost by 15%, permanently.',
+      cost: 150
+    },
+    marketing: {
+      name: 'Local Advertising Campaign',
+      desc: 'Flyers and social posts bring 25% more customers through the door, every day.',
+      cost: 200
+    },
+    training: {
+      name: 'Barista Training',
+      desc: 'Faster, friendlier service turns more hesitant visits into sales.',
+      cost: 160
+    },
+    decor: {
+      name: 'Cozy Interior Renovation',
+      desc: 'A warmer atmosphere earns lasting goodwill — an immediate +15 reputation.',
+      cost: 220
+    }
+  };
+
+  const EVENTS = [
+    { id:'festival', name:'Local Festival', desc:'A street festival fills downtown — foot traffic will surge today.', traffic:1.8 },
+    { id:'heatwave', name:'Heatwave', desc:'A sudden heatwave has everyone craving iced drinks over hot ones.', demand:{iced:2.3, hot:0.5} },
+    { id:'supply', name:'Supply Chain Delay', desc:'A delayed shipment has doubled bean prices for the day.', cost:{beans:2.0} },
+    { id:'rain', name:'Rainy Day', desc:'Steady rain is keeping customers indoors — expect lighter traffic.', traffic:0.6 },
+    { id:'shortage', name:'Milk Shortage', desc:'A regional shortage has pushed milk prices up sharply.', cost:{milk:1.8} },
+    { id:'press', name:'Glowing Review', desc:'A local food blogger raved about your shop — traffic and reputation are up.', traffic:1.3, reputation:8 }
+  ];
+
+  // ---------------- State ----------------
+  let state = {};
+
+  function newGame(){
+    state = {
+      day: 1,
+      funds: START_FUNDS,
+      inventory: { beans:0, milk:0, cups:0 },
+      prices: { hot:3.5, latte:4.5, iced:4.2 },
+      reputation: 50,
+      upgrades: {},
+      daySpent: 0,
+      dayIncome: 0,
+      dayHappy: 0,
+      dayUnhappy: 0,
+      event: null,
+      costMult: {},
+      history: [],
+      elapsed: 0,
+      speed: 1,
+      arrivalQueue: [],
+      simTimer: null
+    };
+  }
+
+  function generateEvent(){
+    if(Math.random() < 0.30){
+      return EVENTS[Math.floor(Math.random()*EVENTS.length)];
+    }
+    return null;
+  }
+
+  function computeCostMultipliers(){
+    state.costMult = {};
+    for(const key in RESOURCES){
+      const dailyFluct = 0.9 + Math.random()*0.3; // 0.9x - 1.2x
+      const eventMult = (state.event && state.event.cost && state.event.cost[key]) || 1;
+      state.costMult[key] = dailyFluct * eventMult;
+    }
+  }
+
+  function unitCost(key){
+    const discount = state.upgrades.bulk ? 0.85 : 1;
+    return RESOURCES[key].baseCost * (state.costMult[key] || 1) * discount;
+  }
+
+  // ---------------- DOM refs ----------------
+  const $ = (id) => document.getElementById(id);
+  const screenShop = $('screen-shop');
+  const screenSim = $('screen-sim');
+
+  function fmtMoney(n){ return '$' + n.toFixed(2); }
+
+  // ---------------- Header ----------------
+  function renderHeader(){
+    $('day-label').textContent = `Day ${state.day} of ${TOTAL_DAYS}`;
+    $('funds-amount').textContent = fmtMoney(state.funds);
+    const dotsEl = $('day-dots');
+    dotsEl.innerHTML = '';
+    for(let i=1;i<=TOTAL_DAYS;i++){
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < state.day ? ' done' : (i === state.day ? ' current' : ''));
+      dotsEl.appendChild(d);
+    }
+  }
+
+  // ---------------- Shop screen ----------------
+  function renderShopScreen(){
+    switchScreen('shop');
+    renderHeader();
+    renderResourceList();
+    renderPriceList();
+    renderReputation();
+    renderUpgrades();
+    renderEventCard($('event-slot'));
+    $('today-spent').textContent = fmtMoney(state.daySpent);
+  }
+
+  function renderResourceList(){
+    const wrap = $('resource-list');
+    wrap.innerHTML = '';
+    for(const key in RESOURCES){
+      const r = RESOURCES[key];
+      const cost = unitCost(key);
+      const hiked = cost > r.baseCost * 1.15;
+      const row = document.createElement('div');
+      row.className = 'res-row';
+      row.innerHTML = `
+        <div class="res-name">${r.label}<small>${r.unit}</small></div>
+        <div class="res-stock" id="stock-${key}">${state.inventory[key]} in stock</div>
+        <div class="res-cost ${hiked ? 'hiked':''}">${fmtMoney(cost)}/ea</div>
+        <div class="res-buy">
+          <input type="number" min="0" max="${QTY_CAP}" step="5" value="10" class="qty-input" id="qty-${key}">
+          <button class="btn-buy" data-buy="${key}">Buy</button>
+        </div>`;
+      wrap.appendChild(row);
+    }
+    wrap.querySelectorAll('[data-buy]').forEach(btn=>{
+      btn.addEventListener('click', () => buyResource(btn.getAttribute('data-buy')));
+    });
+  }
+
+  function buyResource(key){
+    const qtyInput = $(`qty-${key}`);
+    let qty = parseInt(qtyInput.value, 10);
+    if(!Number.isFinite(qty) || qty <= 0) return;
+    qty = Math.min(QTY_CAP, qty);
+    const cost = unitCost(key);
+    let total = qty * cost;
+    if(total > state.funds){
+      qty = Math.floor(state.funds / cost);
+      total = qty * cost;
+      if(qty <= 0){ flashFundsWarning(); return; }
+    }
+    state.funds -= total;
+    state.inventory[key] += qty;
+    state.daySpent += total;
+    renderHeader();
+    renderResourceList();
+    $('today-spent').textContent = fmtMoney(state.daySpent);
+  }
+
+  function flashFundsWarning(){
+    const pill = document.querySelector('.funds-pill');
+    pill.style.borderColor = 'var(--danger)';
+    setTimeout(()=>{ pill.style.borderColor = 'var(--gold)'; }, 400);
+  }
+
+  function renderPriceList(){
+    const wrap = $('price-list');
+    wrap.innerHTML = '';
+    for(const key in PRODUCTS){
+      const p = PRODUCTS[key];
+      const recipeStr = Object.entries(p.recipe).map(([r,q])=>`${q} ${RESOURCES[r].label.toLowerCase()}`).join(' + ');
+      const row = document.createElement('div');
+      row.className = 'price-row';
+      row.innerHTML = `
+        <div class="p-name">${p.label}<small>${recipeStr}</small></div>
+        <div class="price-input-wrap"><span>$</span><input type="number" min="0.50" max="${PRICE_CAP}" step="0.1" value="${state.prices[key].toFixed(2)}" class="price-input" id="price-${key}"></div>`;
+      wrap.appendChild(row);
+    }
+    wrap.querySelectorAll('.price-input').forEach(inp=>{
+      const key = inp.id.replace('price-','');
+      const commit = () => {
+        let v = parseFloat(inp.value);
+        if(!Number.isFinite(v)) v = PRODUCTS[key].basePrice;
+        v = Math.min(PRICE_CAP, Math.max(0.5, v));
+        state.prices[key] = v;
+        inp.value = v.toFixed(2);
+      };
+      inp.addEventListener('input', commit);
+      inp.addEventListener('blur', commit);
+    });
+  }
+
+  function renderReputation(){
+    $('rep-value').textContent = Math.round(state.reputation);
+    $('rep-fill').style.width = state.reputation + '%';
+  }
+
+  function renderUpgrades(){
+    const wrap = $('upgrades-list');
+    wrap.innerHTML = '';
+    for(const id in UPGRADES){
+      const u = UPGRADES[id];
+      const owned = !!state.upgrades[id];
+      const affordable = state.funds >= u.cost;
+      const row = document.createElement('div');
+      row.className = 'upgrade-row';
+      row.innerHTML = `
+        <div class="upgrade-top">
+          <div class="upgrade-name">${u.name}</div>
+          ${owned
+            ? `<button class="btn-owned" disabled>Owned ✓</button>`
+            : `<button class="btn-upgrade" data-upgrade="${id}" ${affordable ? '' : 'disabled'}>${fmtMoney(u.cost)}</button>`}
+        </div>
+        <div class="upgrade-desc">${u.desc}</div>`;
+      wrap.appendChild(row);
+    }
+    wrap.querySelectorAll('[data-upgrade]').forEach(btn=>{
+      btn.addEventListener('click', () => buyUpgrade(btn.getAttribute('data-upgrade')));
+    });
+  }
+
+  function buyUpgrade(id){
+    const u = UPGRADES[id];
+    if(!u || state.upgrades[id] || state.funds < u.cost) return;
+    state.funds -= u.cost;
+    state.upgrades[id] = true;
+    if(id === 'decor'){
+      state.reputation = Math.min(100, state.reputation + 15);
+    }
+    renderHeader();
+    renderResourceList();
+    renderReputation();
+    renderUpgrades();
+  }
+
+  function renderEventCard(target){
+    target.innerHTML = '';
+    if(!state.event){
+      target.innerHTML = '<div class="no-event">A quiet, ordinary day. No surprises on the forecast.</div>';
+      return;
+    }
+    const card = document.createElement('div');
+    card.className = 'event-card card';
+    card.style.margin = '0';
+    card.innerHTML = `<div class="ev-title">${state.event.name}</div><div class="ev-desc">${state.event.desc}</div>`;
+    target.appendChild(card);
+  }
+
+  // ---------------- Simulation screen ----------------
+  function switchScreen(name){
+    screenShop.classList.toggle('active', name === 'shop');
+    screenSim.classList.toggle('active', name === 'sim');
+  }
+
+  function startSimulation(){
+    switchScreen('sim');
+    state.dayIncome = 0;
+    state.dayHappy = 0;
+    state.dayUnhappy = 0;
+    state.elapsed = 0;
+    state.speed = 1;
+    $('btn-speed').textContent = 'Speed: 1x';
+
+    const eventTraffic = (state.event && state.event.traffic) || 1;
+    const marketingMult = state.upgrades.marketing ? 1.25 : 1;
+    const trafficMult = eventTraffic * marketingMult;
+    const baseCustomers = 16 + Math.floor(state.reputation/8) + Math.floor(Math.random()*14);
+    const totalCustomers = Math.max(5, Math.round(baseCustomers * trafficMult));
+
+    state.arrivalQueue = [];
+    for(let i=0;i<totalCustomers;i++) state.arrivalQueue.push(Math.random()*SIM_MS);
+    state.arrivalQueue.sort((a,b)=>a-b);
+
+    $('receipt-log').innerHTML = '<div class="receipt-head">— ROSEWOOD COFFEE CO. —<br>live sales feed</div>';
+    renderSimStock();
+    renderEventCard($('sim-event-slot'));
+    updateSimStats();
+    updateTimerDisplay();
+
+    if(state.simTimer) clearInterval(state.simTimer);
+    state.simTimer = setInterval(simTick, TICK_MS);
+  }
+
+  $('btn-speed').addEventListener('click', () => {
+    state.speed = state.speed === 1 ? 2 : (state.speed === 2 ? 4 : 1);
+    $('btn-speed').textContent = `Speed: ${state.speed}x`;
+  });
+
+  function simTick(){
+    state.elapsed += TICK_MS * state.speed;
+    while(state.arrivalQueue.length && state.arrivalQueue[0] <= state.elapsed){
+      state.arrivalQueue.shift();
+      processCustomer();
+    }
+    updateTimerDisplay();
+    if(state.elapsed >= SIM_MS){
+      clearInterval(state.simTimer);
+      state.simTimer = null;
+      finishDay();
+    }
+  }
+
+  function updateTimerDisplay(){
+    const pct = Math.min(100, (state.elapsed / SIM_MS) * 100);
+    $('timer-fill').style.width = pct + '%';
+    $('timer-elapsed').textContent = (Math.min(state.elapsed, SIM_MS)/1000).toFixed(1) + 's';
+    $('timer-total').textContent = (SIM_MS/1000).toFixed(1) + 's';
+  }
+
+  function weightedProductChoice(){
+    const event = state.event;
+    const shares = {};
+    let total = 0;
+    for(const key in PRODUCTS){
+      const mult = (event && event.demand && event.demand[key]) || 1;
+      const s = PRODUCTS[key].share * mult;
+      shares[key] = s;
+      total += s;
+    }
+    let r = Math.random() * total;
+    for(const key in shares){
+      if(r < shares[key]) return key;
+      r -= shares[key];
+    }
+    return Object.keys(PRODUCTS)[0];
+  }
+
+  function processCustomer(){
+    const chosenKey = weightedProductChoice();
+    const product = PRODUCTS[chosenKey];
+    const price = state.prices[chosenKey];
+
+    const canMake = Object.entries(product.recipe).every(([res,qty]) => state.inventory[res] >= qty);
+    if(!canMake){
+      logLine(`Wanted ${product.label} — OUT OF STOCK`, 'miss');
+      state.dayUnhappy++;
+      updateSimStats();
+      return;
+    }
+
+    const toleranceMult = state.upgrades.espresso ? 1.18 : 1;
+    const fairPrice = product.basePrice * (0.75 + Math.random()*0.6) * toleranceMult;
+    const ratio = price / fairPrice;
+    let walkChance = ratio > 1 ? Math.min(0.99, (ratio - 1) * 1.4) : 0;
+    if(state.upgrades.training) walkChance *= 0.7;
+
+    if(Math.random() < walkChance){
+      logLine(`Balked at ${fmtMoney(price)} ${product.label} — too pricey`, 'miss');
+      state.dayUnhappy++;
+      updateSimStats();
+      return;
+    }
+
+    for(const [res,qty] of Object.entries(product.recipe)) state.inventory[res] -= qty;
+    state.funds += price;
+    state.dayIncome += price;
+    state.dayHappy++;
+    logLine(`${product.label}`, 'sale', fmtMoney(price));
+    renderHeader();
+    renderSimStock();
+    updateSimStats();
+  }
+
+  function logLine(text, cls, amount){
+    const log = $('receipt-log');
+    const line = document.createElement('div');
+    line.className = 'receipt-line ' + cls;
+    line.innerHTML = `<span>${cls==='sale' ? '✓' : '✗'} ${text}</span>${amount ? `<span>${amount}</span>` : ''}`;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function renderSimStock(){
+    const wrap = $('sim-stock');
+    wrap.innerHTML = '';
+    for(const key in RESOURCES){
+      const line = document.createElement('div');
+      line.className = 'stat-line';
+      line.innerHTML = `<span>${RESOURCES[key].label}</span><span class="v">${state.inventory[key]}</span>`;
+      wrap.appendChild(line);
+    }
+  }
+
+  function updateSimStats(){
+    $('stat-served').textContent = state.dayHappy;
+    $('stat-missed').textContent = state.dayUnhappy;
+    $('stat-income').textContent = fmtMoney(state.dayIncome);
+    const totalTried = state.dayHappy + state.dayUnhappy;
+    const sat = totalTried > 0 ? Math.round((state.dayHappy/totalTried)*100) : 100;
+    $('stat-satisfaction').textContent = sat + '%';
+  }
+
+  // ---------------- End of day ----------------
+  function finishDay(){
+    const totalTried = state.dayHappy + state.dayUnhappy;
+    const satisfaction = totalTried > 0 ? Math.round((state.dayHappy/totalTried)*100) : 100;
+    const dayProfit = state.dayIncome - state.daySpent;
+
+    state.reputation = Math.max(0, Math.min(100, Math.round(state.reputation*0.7 + satisfaction*0.3)));
+
+    state.history.push({
+      day: state.day,
+      income: state.dayIncome,
+      spent: state.daySpent,
+      profit: dayProfit,
+      satisfaction,
+      served: state.dayHappy,
+      missed: state.dayUnhappy,
+      event: state.event ? state.event.name : null
+    });
+
+    showSummary(dayProfit, satisfaction);
+  }
+
+  function showSummary(dayProfit, satisfaction){
+    $('summary-title').textContent = `Day ${state.day} — Closing Time`;
+    const leftover = Object.entries(state.inventory).map(([k,v])=>`${v} ${RESOURCES[k].label.toLowerCase()}`).join(', ');
+    const body = $('summary-body');
+    body.innerHTML = `
+      <div class="row"><span>Income</span><span class="pos">${fmtMoney(state.dayIncome)}</span></div>
+      <div class="row"><span>Inventory spend</span><span class="neg">-${fmtMoney(state.daySpent)}</span></div>
+      <div class="row total"><span>Net Profit</span><span>${dayProfit >= 0 ? fmtMoney(dayProfit) : '-' + fmtMoney(Math.abs(dayProfit))}</span></div>
+      <div class="row"><span>Customer satisfaction</span><span>${satisfaction}%</span></div>
+      <div class="row"><span>Served / Missed</span><span>${state.dayHappy} / ${state.dayUnhappy}</span></div>
+      <div class="row"><span>Leftover stock</span><span style="text-align:right;">${leftover}</span></div>
+      ${state.event ? `<div class="row"><span>Today's event</span><span>${state.event.name}</span></div>` : ''}
+    `;
+    $('btn-next-day').textContent = state.day >= TOTAL_DAYS ? 'View Final Report →' : 'Open Tomorrow →';
+    $('overlay-summary').classList.add('active');
+  }
+
+  $('btn-next-day').addEventListener('click', () => {
+    $('overlay-summary').classList.remove('active');
+    state.day++;
+    if(state.day > TOTAL_DAYS){
+      showGameOver();
+      return;
+    }
+    state.daySpent = 0;
+    state.dayIncome = 0;
+    state.dayHappy = 0;
+    state.dayUnhappy = 0;
+    state.event = generateEvent();
+    if(state.event && state.event.reputation){
+      state.reputation = Math.min(100, state.reputation + state.event.reputation);
+    }
+    computeCostMultipliers();
+    renderShopScreen();
+  });
+
+  // ---------------- Game over ----------------
+  function getRank(net){
+    if(net < 0) return { title:'Bankrupt Barista', desc:'The shop closed in the red. Every great mogul starts somewhere — usually here.' };
+    if(net < 150) return { title:'Rookie Brewer', desc:'You kept the lights on. The fundamentals are there — refine your pricing next round.' };
+    if(net < 400) return { title:'Steady Barista', desc:'A solid, dependable run. Customers know your name and your coffee.' };
+    if(net < 700) return { title:'Coffee Connoisseur', desc:'Sharp buying and smart pricing turned a tidy profit this cycle.' };
+    if(net < 1100) return { title:'Shop Owner', desc:'A thriving local favorite. You read the market and the weather equally well.' };
+    return { title:'Business Mogul', desc:'A masterclass in margins. Rosewood Coffee Co. is ready to franchise.' };
+  }
+
+  function showGameOver(){
+    const net = state.funds - START_FUNDS;
+    const avgSat = Math.round(state.history.reduce((a,h)=>a+h.satisfaction,0) / state.history.length);
+    const best = state.history.reduce((a,h)=> h.profit > a.profit ? h : a, state.history[0]);
+    const rank = getRank(net);
+
+    $('gameover-body').innerHTML = `
+      <div class="row"><span>Starting funds</span><span>${fmtMoney(START_FUNDS)}</span></div>
+      <div class="row"><span>Final funds</span><span>${fmtMoney(state.funds)}</span></div>
+      <div class="row total"><span>Net Profit</span><span class="${net>=0?'pos':'neg'}">${net>=0?fmtMoney(net):'-'+fmtMoney(Math.abs(net))}</span></div>
+      <div class="row"><span>Average satisfaction</span><span>${avgSat}%</span></div>
+      <div class="row"><span>Best day</span><span>Day ${best.day} (${fmtMoney(best.profit)})</span></div>
+      <div class="row"><span>Final reputation</span><span>${Math.round(state.reputation)}</span></div>
+    `;
+    $('rank-title').textContent = rank.title;
+    $('rank-desc').textContent = rank.desc;
+    $('overlay-gameover').classList.add('active');
+  }
+
+  $('btn-restart').addEventListener('click', () => {
+    $('overlay-gameover').classList.remove('active');
+    startNewGame();
+  });
+
+  // ---------------- Start day button ----------------
+  $('btn-start-day').addEventListener('click', () => {
+    if(state.funds < 0) return;
+    startSimulation();
+  });
+
+  // ---------------- Boot ----------------
+  function startNewGame(){
+    newGame();
+    state.event = generateEvent();
+    if(state.event && state.event.reputation){
+      state.reputation = Math.min(100, state.reputation + state.event.reputation);
+    }
+    computeCostMultipliers();
+    renderShopScreen();
+  }
+
+  startNewGame();
+})();
+</script>
+</body>
+</html>

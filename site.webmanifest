@@ -1,0 +1,13 @@
+{
+  "name": "Unblocktorium",
+  "short_name": "Unblocktorium",
+  "icons": [
+    {
+      "src": "images/Favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/Gamesbyme/",
+  "display": "standalone"
+}

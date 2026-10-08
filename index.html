@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Unblocktorium | Unblocked Games</title>
+  <meta name="description" content="Play free browser games like Geometry Dash and Drive Mad on Unblocktorium. Fast loading, smooth performance, and easy access.">
+  <meta name="keywords" content="unblocked games, geometry dash, fnaf, browser games, drive mad, tiny fishing, Unblocktorium, games hub">
+  
+  <!-- Open Graph Meta Tags for Social Sharing & SEO -->
+  <meta property="og:title" content="Unblocktorium | Play Unblocked Games and browser games">
+  <meta property="og:description" content="Play Geometry Dash, FNAF, tiny fishing, and Drive Mad instantly. Fast, stealthy, and unblocked.">
+  <meta property="og:image" content="https://theboomhazaura.github.io/Gamesbyme/images/logo-dark.png">
+  <meta property="og:url" content="https://theboomhazaura.github.io/Gamesbyme/">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- High-Resolution Favicons for Google Search -->
+  <link rel="icon" type="image/png" sizes="32x32" href="images/Favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/Favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="images/Favicon.png">
+
+  <!-- Web Manifest & Site Name Schema -->
+  <link rel="manifest" href="site.webmanifest">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Unblocktorium",
+    "alternateName": "Unblocktorium Games",
+    "url": "https://theboomhazaura.github.io/Gamesbyme/"
+  }
+  </script>
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Shelf Grid Container */
+    .shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Game Card Layout */
+    .game-card {
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      background: #1e1e24;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #2d2d35;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .game-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+    }
+
+    .game-card h3 {
+      margin: 12px 12px 4px 12px;
+      font-size: 1.1rem;
+    }
+
+    .game-card p {
+      margin: 0 12px 12px 12px;
+      font-size: 0.85rem;
+      color: #a1a1aa;
+    }
+
+    /* Color accents */
+    .game-card.teal { border-bottom: 4px solid #14b8a6; }
+    .game-card.moss { border-bottom: 4px solid #84cc16; }
+    .game-card.clay { border-bottom: 4px solid #f97316; }
+
+    /* Logo Layout Adjustments */
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .site-logo {
+      height: 50px;
+      width: auto;
+      object-fit: contain;
+      transition: opacity 0.3s ease;
+    }
+
+    .site-logo.hidden {
+      display: none;
+    }
+
+    /* Hexagon Swatch Styling */
+    .hex-swatch {
+      cursor: pointer;
+      pointer-events: visiblePainted !important;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .hex-swatch:hover {
+      transform: scale(1.15);
+      filter: brightness(1.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR TOGGLE BUTTON -->
+  <button id="sidebar-toggle" onclick="toggleSidebar()" title="Menu">
+    ☰ Menu
+  </button>
+
+  <!-- OVERLAY BACKDROP -->
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>Unblocktorium</h2>
+      <button class="close-btn" onclick="toggleSidebar()">&times;</button>
+    </div>
+
+    <!-- LAYER 1: MAIN NAVIGATION -->
+    <div id="layer-main" class="sidebar-layer active">
+      
+      <!-- SEARCH BAR -->
+      <div class="control-group" style="margin-bottom: 15px;">
+        <input 
+          type="text" 
+          id="game-search" 
+          placeholder="🔍 Search cartridges..." 
+          oninput="handleSearch(event)"
+          style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #18181b; color: #fff; font-family: inherit; outline: none;"
+        />
+      </div>    
+      
+      <h3>Quick Access</h3>
+      
+      <div class="control-group">
+        <button id="music-btn" class="sidebar-btn" onclick="toggleGDMusic()">
+          🟡 GD Menu Music: OFF
+        </button>
+        <audio id="gd-music" loop preload="auto">
+          <source src="audio/gd-menu.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+
+      <button class="sidebar-btn layer-nav" onclick="switchLayer('layer-theme')">
+        🎨 Theme & Color Palette &rarr;
+      </button>
+      <button class="sidebar-btn layer-nav" onclick="switchLayer('layer-categories')">
+        🎮 Game Categories &rarr;
+      </button>
+      <button class="sidebar-btn layer-nav" onclick="switchLayer('layer-stealth')">
+        🛡️ Stealth & Panic Settings &rarr;
+      </button>
+      <button class="sidebar-btn layer-nav" onclick="switchLayer('layer-stats')">
+        ⚡ Aura & Brainrot Stats &rarr;
+      </button>
+    </div>
+
+    <!-- LAYER 2: THEME & INLINE SVG HEXAGON PALETTE -->
+    <div id="layer-theme" class="sidebar-layer">
+      <button class="back-btn" onclick="switchLayer('layer-main')">&larr; Back</button>
+      <h3>Color Themes</h3>
+      <p class="layer-desc">Select an accent color from the hexagon grid:</p>
+
+      <!-- Inline SVG Hexagon Swatches -->
+      <div class="hex-grid-container" style="display: flex; justify-content: center; margin: 15px 0;">
+        <svg width="220" height="200" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+          <!-- Row 1 -->
+          <polygon class="hex-swatch" data-color="#ff0055" points="30,5 50,16 50,38 30,49 10,38 10,16" fill="#ff0055" />
+          <polygon class="hex-swatch" data-color="#f97316" points="75,5 95,16 95,38 75,49 55,38 55,16" fill="#f97316" />
+          <polygon class="hex-swatch" data-color="#eab308" points="120,5 140,16 140,38 120,49 100,38 100,16" fill="#eab308" />
+          <polygon class="hex-swatch" data-color="#84cc16" points="165,5 185,16 185,38 165,49 145,38 145,16" fill="#84cc16" />
+
+          <!-- Row 2 -->
+          <polygon class="hex-swatch" data-color="#10b981" points="52,45 72,56 72,78 52,89 32,78 32,56" fill="#10b981" />
+          <polygon class="hex-swatch" data-color="#14b8a6" points="97,45 117,56 117,78 97,89 77,78 77,56" fill="#14b8a6" />
+          <polygon class="hex-swatch" data-color="#06b6d4" points="142,45 162,56 162,78 142,89 122,78 122,56" fill="#06b6d4" />
+
+          <!-- Row 3 -->
+          <polygon class="hex-swatch" data-color="#3b82f6" points="30,85 50,96 50,118 30,129 10,118 10,96" fill="#3b82f6" />
+          <polygon class="hex-swatch" data-color="#6366f1" points="75,85 95,96 95,118 75,129 55,118 55,96" fill="#6366f1" />
+          <polygon class="hex-swatch" data-color="#8b5cf6" points="120,85 140,96 140,118 120,129 100,118 100,96" fill="#8b5cf6" />
+          <polygon class="hex-swatch" data-color="#a855f7" points="165,85 185,96 185,118 165,129 145,118 145,96" fill="#a855f7" />
+
+          <!-- Row 4 -->
+          <polygon class="hex-swatch" data-color="#ec4899" points="52,125 72,136 72,158 52,169 32,158 32,136" fill="#ec4899" />
+          <polygon class="hex-swatch" data-color="#f43f5e" points="97,125 117,136 117,158 97,169 77,158 77,136" fill="#f43f5e" />
+          <polygon class="hex-swatch" data-color="#64748b" points="142,125 162,136 162,158 142,169 122,158 122,136" fill="#64748b" />
+        </svg>
+      </div>
+
+      <div class="control-group">
+        <button id="theme-btn" class="sidebar-btn" onclick="toggleTheme()">
+          🌙 Toggle Dark/Light Base
+        </button>
+      </div>
+    </div> <!-- FIXED: Closed layer-theme container cleanly here -->
+
+    <!-- LAYER 3: GAME CATEGORIES -->
+    <div id="layer-categories" class="sidebar-layer">
+      <button class="back-btn" onclick="switchLayer('layer-main')">&larr; Back</button>
+      <h3>Categories</h3>
+      <button class="sidebar-btn active" onclick="filterCategory(event, 'all')">Home</button>
+      <button class="sidebar-btn" onclick="filterCategory(event, 'GAMESBYME')">GAMESBYME</button>
+      <button class="sidebar-btn" onclick="filterCategory(event, 'Horror')">Horror</button>
+      <button class="sidebar-btn" onclick="filterCategory(event, 'Platformer')">Platformer</button>
+      <button class="sidebar-btn" onclick="filterCategory(event, 'other')">Other</button> 
+      <button class="sidebar-btn" onclick="filterCategory(event, 'Driving')">Driving</button>
+      <button class="sidebar-btn" onclick="filterCategory(event, 'Idle')">Idle</button>
+      <button class="sidebar-btn" onclick="filterCategory(event, 'Shooter')">Shooter</button>
+    </div>
+
+    <!-- LAYER 4: STEALTH SETTINGS -->
+    <div id="layer-stealth" class="sidebar-layer">
+      <button class="back-btn" onclick="switchLayer('layer-main')">&larr; Back</button>
+      <h3>Stealth Controls</h3>
+      <p class="layer-desc">Panic Key: <kbd>~</kbd> (Backquote)</p>
+      <p class="layer-desc">Redirects instantly to Google Docs and kills menu audio.</p>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+
+      <h3>Tab Cloaking Profile</h3>
+      <div class="cloak-options" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+        <button class="sidebar-btn" onclick="setTabCloak('drive')">📁 Google Drive</button>
+        <button class="sidebar-btn" onclick="setTabCloak('docs')">📄 Google Docs</button>
+        <button class="sidebar-btn" onclick="setTabCloak('canvas')">🎓 Canvas LMS</button>
+        <button class="sidebar-btn" onclick="setTabCloak('desmos')">📊 Desmos Calculator</button>
+        <button class="sidebar-btn" onclick="resetTabCloak()">🔄 Reset (Unblocktorium)</button>
+      </div>
+    </div>
+
+    <!-- LAYER 5: BRAINROT STATS -->
+    <div id="layer-stats" class="sidebar-layer">
+      <button class="back-btn" onclick="switchLayer('layer-main')">&larr; Back</button>
+      <h3>Aura Tracker</h3>
+      <div class="stat-badge">⚡ Aura: +999,999</div>
+      <div class="stat-badge">🇮🇹 Status: Tung Tung Tung Sahur</div>
+      <div class="stat-badge">☕ Vibe: Cappuccino Ballerina</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT WRAPPER -->
+  <div id="main-content">
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="hero-eyebrow">don't get caught</p>
+
+        <!-- DYNAMIC THEME LOGO CONTAINER -->
+        <div class="logo-container">
+          <img id="logo-dark" src="images/logo-dark.png" alt="Unblocktorium Logo" class="site-logo">
+          <img id="logo-light" src="images/logo-light.png" alt="Unblocktorium Logo" class="site-logo hidden">
+          <h1 class="hero-title">UNBLOCKTORIUM</h1>
+        </div>
+
+        <p class="hero-sub">Pick a cartridge, hit play.</p>
+      </div>
+    </header>
+
+    <!-- SINGLE GAME SHELF CONTAINER -->
+    <main id="shelf-container" class="shelf-grid">
+      <!-- Game cartridges render here dynamically via script.js -->
+    </main>
+
+    <footer class="site-footer">
+      <p>unblocktorium dont get caught</p>
+    </footer>
+  </div>
+
+  <!-- SCRIPTS ORDER -->
+  <script src="games.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

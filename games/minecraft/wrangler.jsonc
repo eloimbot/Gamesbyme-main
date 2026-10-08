@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  "name": "minecraft-archive-experimental",
+  "compatibility_date": "2026-05-01",
+  // Pages project — deploys the current directory.
+  // Excluded paths come from .gitignore + .assetsignore.
+  "pages_build_output_dir": "."
+}
